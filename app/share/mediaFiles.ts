@@ -1,0 +1,107 @@
+import type { Attachment } from "./types";
+
+/**
+ * Convert a list of dropped/picked files into Attachments.
+ *  - HEIC/HEIF images are converted to JPEG in the browser (heic2any).
+ *  - Non image/video files are ignored.
+ *  - Reads dimensions (images) and dimensions+duration (video) for tiling.
+ */
+export async function filesToAttachments(
+  files: FileList | File[] | null,
+): Promise<Attachment[]> {
+  if (!files) return [];
+  const arr = Array.from(files);
+  const out: Attachment[] = [];
+  for (const f of arr) {
+    const converted = await maybeConvertHeic(f);
+    if (!converted) continue;
+    const isImage = converted.type.startsWith("image/");
+    const isVideo = converted.type.startsWith("video/");
+    if (!isImage && !isVideo) continue;
+    out.push(await fileToAttachment(converted, isImage ? "image" : "video"));
+  }
+  return out;
+}
+
+/** HEIC/HEIF → JPEG. Returns the original file for everything else. */
+async function maybeConvertHeic(file: File): Promise<File | null> {
+  const isHeic =
+    /image\/hei[cf]/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
+  if (!isHeic) return file;
+  try {
+    const heic2any = (await import("heic2any")).default;
+    const result = await heic2any({
+      blob: file,
+      toType: "image/jpeg",
+      quality: 0.9,
+    });
+    const blob = Array.isArray(result) ? result[0] : result;
+    const name = file.name.replace(/\.(heic|heif)$/i, ".jpg") || "photo.jpg";
+    return new File([blob], name, { type: "image/jpeg" });
+  } catch {
+    // Conversion failed (e.g. unsupported HEIC variant) — skip the file
+    // rather than uploading something the feed can't display.
+    return null;
+  }
+}
+
+async function fileToAttachment(
+  file: File,
+  kind: "image" | "video",
+): Promise<Attachment> {
+  const previewUrl = URL.createObjectURL(file);
+  const base: Attachment = {
+    id: cryptoRandomId(),
+    file,
+    type: kind,
+    previewUrl,
+    source: "uploaded",
+  };
+  try {
+    if (kind === "image") {
+      const dims = await readImageDimensions(previewUrl);
+      base.width = dims.width;
+      base.height = dims.height;
+    } else {
+      const meta = await readVideoMetadata(previewUrl);
+      base.width = meta.width;
+      base.height = meta.height;
+      base.durationMs = meta.durationMs;
+    }
+  } catch {
+    /* metadata is optional */
+  }
+  return base;
+}
+
+function readImageDimensions(url: string): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
+function readVideoMetadata(
+  url: string,
+): Promise<{ width: number; height: number; durationMs: number }> {
+  return new Promise((resolve, reject) => {
+    const v = document.createElement("video");
+    v.preload = "metadata";
+    v.onloadedmetadata = () => {
+      resolve({
+        width: v.videoWidth,
+        height: v.videoHeight,
+        durationMs: Math.round(v.duration * 1000),
+      });
+    };
+    v.onerror = reject;
+    v.src = url;
+  });
+}
+
+function cryptoRandomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return Math.random().toString(36).slice(2);
+}

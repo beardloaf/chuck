@@ -1,0 +1,53 @@
+import type { Metadata } from "next";
+import { Inter_Tight } from "next/font/google";
+import "./globals.css";
+
+const interTight = Inter_Tight({
+  variable: "--font-inter-tight",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Mikula",
+  description: "A small home for stories.",
+};
+
+// Applies the saved theme before paint to avoid a flash of the wrong theme.
+const themeInit = `try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.dataset.theme='light';}}catch(e){}`;
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html
+      lang="en"
+      className={`${interTight.variable} h-full antialiased`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
+      </head>
+      <body className="min-h-full flex flex-col">
+        <main className="flex-1 flex flex-col">{children}</main>
+        <SiteFooter />
+      </body>
+    </html>
+  );
+}
+
+function SiteFooter() {
+  return (
+    <footer className="w-full mt-24">
+      <div className="max-w-6xl mx-auto px-6 py-8">
+        <div className="divider mb-5" />
+        <p className="text-xs text-ink-3 text-center">
+          A small home for stories · {new Date().getFullYear()}
+        </p>
+      </div>
+    </footer>
+  );
+}
