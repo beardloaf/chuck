@@ -2,7 +2,7 @@ import { db, schema } from "@/lib/db";
 import { desc, eq, inArray } from "drizzle-orm";
 import { Feed } from "./feed/Feed";
 import type { FeedPost } from "./feed/Tile";
-import { asset } from "@/lib/site";
+import { asset, displayUrl } from "@/lib/site";
 
 // Dynamic for the normal server build. The static GitHub Pages build swaps this
 // to "force-static" (see scripts/build-static.mjs) so it prerenders at build.
@@ -44,16 +44,19 @@ export default async function HomePage() {
     body: p.body,
     createdAt: p.createdAt.getTime(),
     storyDate: p.storyDate ? p.storyDate.getTime() : null,
-    media: (byPost.get(p.id) ?? []).map((m) => ({
-      id: m.id,
-      type: m.type as "audio" | "image" | "video",
-      url: asset(m.url),
-      mime: m.mime,
-      durationMs: m.durationMs,
-      width: m.width,
-      height: m.height,
-      peaks: m.waveformPeaks ?? null,
-    })),
+    media: (byPost.get(p.id) ?? []).map((m) => {
+      const type = m.type as "audio" | "image" | "video";
+      return {
+        id: m.id,
+        type,
+        url: asset(displayUrl(m.url, type)), // feed shows the compressed version
+        mime: m.mime,
+        durationMs: m.durationMs,
+        width: m.width,
+        height: m.height,
+        peaks: m.waveformPeaks ?? null,
+      };
+    }),
   }));
 
   return (
