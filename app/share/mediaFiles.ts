@@ -18,9 +18,55 @@ export async function filesToAttachments(
     const isImage = converted.type.startsWith("image/");
     const isVideo = converted.type.startsWith("video/");
     if (!isImage && !isVideo) continue;
-    out.push(await fileToAttachment(converted, isImage ? "image" : "video"));
+    // Shrink large photos in the browser so the upload stays under the server's
+    // request-body limit (Vercel functions cap at ~4.5MB).
+    const file = isImage ? await compressImageFile(converted) : converted;
+    out.push(await fileToAttachment(file, isImage ? "image" : "video"));
   }
   return out;
+}
+
+/**
+ * Downscale (max 2048px on the long edge) and re-encode an image to JPEG so big
+ * phone photos upload reliably. Returns the original if it can't be processed
+ * or compression wouldn't help.
+ */
+async function compressImageFile(file: File): Promise<File> {
+  const MAX_EDGE = 2048;
+  const SKIP_BELOW = 3_500_000; // bytes — small files don't need it
+  let url: string | null = null;
+  try {
+    url = URL.createObjectURL(file);
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = url as string;
+    });
+    const w0 = img.naturalWidth;
+    const h0 = img.naturalHeight;
+    if (!w0 || !h0) return file;
+    const scale = Math.min(1, MAX_EDGE / Math.max(w0, h0));
+    if (scale === 1 && file.size <= SKIP_BELOW) return file;
+    const w = Math.round(w0 * scale);
+    const h = Math.round(h0 * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, w, h);
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob((b) => resolve(b), "image/jpeg", 0.82),
+    );
+    if (!blob || (blob.size >= file.size && scale === 1)) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+    return new File([blob], name, { type: "image/jpeg" });
+  } catch {
+    return file;
+  } finally {
+    if (url) URL.revokeObjectURL(url);
+  }
 }
 
 /** HEIC/HEIF → JPEG. Returns the original file for everything else. */

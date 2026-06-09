@@ -116,6 +116,9 @@ function Slide({ m, active }: { m: CarouselMedia; active: boolean }) {
         ref={videoRef}
         src={m.url}
         controls
+        autoPlay
+        muted
+        playsInline
         preload="metadata"
         className="carousel-video"
         style={{

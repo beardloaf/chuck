@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { TileAudio } from "./TileAudio";
 import { TileVideo } from "./TileVideo";
@@ -57,6 +57,36 @@ export function Tile({ post }: { post: FeedPost }) {
   // Carousel index (only meaningful for multi-image tiles)
   const [idx, setIdx] = useState(0);
 
+  // Pick black or white for the date based on the luminance of what's behind it.
+  const articleRef = useRef<HTMLElement | null>(null);
+  const [dateInk, setDateInk] = useState<"light" | "dark">("light");
+  useEffect(() => {
+    const root = articleRef.current;
+    if (!root) return;
+    const el =
+      root.querySelector<HTMLImageElement>('.carousel-img[data-active="true"]') ??
+      root.querySelector<HTMLImageElement | HTMLVideoElement>(
+        "img.tile-fill, video.tile-fill",
+      );
+    if (!el) return; // no media (text/audio tile) → keep default
+    let cancelled = false;
+    const compute = () => {
+      if (cancelled) return;
+      const lum = topLeftLuminance(el);
+      if (lum != null) setDateInk(lum > 0.6 ? "dark" : "light");
+    };
+    if (el instanceof HTMLImageElement) {
+      if (el.complete && el.naturalWidth) compute();
+      else el.addEventListener("load", compute, { once: true });
+    } else {
+      if (el.readyState >= 2) compute();
+      else el.addEventListener("loadeddata", compute, { once: true });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [idx, primary?.url]);
+
   const variant = QUIET_VARIANTS[hashStr(post.id) % QUIET_VARIANTS.length];
   const onMedia = isImageLed || isVideo;
   const headline = tileHeadline(post);
@@ -85,6 +115,7 @@ export function Tile({ post }: { post: FeedPost }) {
       aria-label={`Open story by ${post.author}`}
     >
       <article
+        ref={articleRef}
         className={`tile ${onMedia ? "tile-media" : variant} ${isMultiImage ? "tile-has-carousel" : ""}`}
         id={`post-${post.id}`}
       >
@@ -138,7 +169,10 @@ export function Tile({ post }: { post: FeedPost }) {
         )}
 
         {/* Top metadata: date only (author moved to a pill above headline) */}
-        <header className={`tile-head ${onMedia ? "on-media" : ""}`}>
+        <header
+          className={`tile-head ${onMedia ? "on-media" : ""}`}
+          data-ink={dateInk}
+        >
           <span className="tile-date">{dateLabel}</span>
         </header>
 
@@ -193,4 +227,30 @@ function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h;
+}
+
+/**
+ * Average luminance (0–1) of the top-left region where the date sits. Returns
+ * null if it can't be read (e.g. a cross-origin Blob image taints the canvas).
+ */
+function topLeftLuminance(el: HTMLImageElement | HTMLVideoElement): number | null {
+  const sw = el instanceof HTMLImageElement ? el.naturalWidth : el.videoWidth;
+  const sh = el instanceof HTMLImageElement ? el.naturalHeight : el.videoHeight;
+  if (!sw || !sh) return null;
+  try {
+    const c = document.createElement("canvas");
+    c.width = 12;
+    c.height = 12;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return null;
+    ctx.drawImage(el, 0, 0, Math.max(1, sw * 0.55), Math.max(1, sh * 0.22), 0, 0, 12, 12);
+    const d = ctx.getImageData(0, 0, 12, 12).data;
+    let sum = 0;
+    for (let i = 0; i < d.length; i += 4) {
+      sum += (0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]) / 255;
+    }
+    return sum / (d.length / 4);
+  } catch {
+    return null;
+  }
 }

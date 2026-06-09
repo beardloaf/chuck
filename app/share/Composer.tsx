@@ -95,6 +95,22 @@ export function Composer({
     if (items.length) addAttachments(items);
   }
 
+  // Safety net: clear the drop overlay whenever a drag ends or a drop lands
+  // anywhere — the inner picker stops propagation, so the form's onDrop may not
+  // fire, which previously left the "Drop to add media" overlay stuck.
+  useEffect(() => {
+    const clear = () => {
+      dragDepth.current = 0;
+      setDropActive(false);
+    };
+    window.addEventListener("drop", clear);
+    window.addEventListener("dragend", clear);
+    return () => {
+      window.removeEventListener("drop", clear);
+      window.removeEventListener("dragend", clear);
+    };
+  }, []);
+
   const canSubmit = useMemo(() => {
     return (
       !submitting &&

@@ -34,21 +34,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <main className="flex-1 flex flex-col">{children}</main>
-        <SiteFooter />
       </body>
     </html>
-  );
-}
-
-function SiteFooter() {
-  return (
-    <footer className="w-full mt-24">
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="divider mb-5" />
-        <p className="text-xs text-ink-3 text-center">
-          A small home for stories · {new Date().getFullYear()}
-        </p>
-      </div>
-    </footer>
   );
 }

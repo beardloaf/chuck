@@ -72,6 +72,7 @@ export default async function StoryPage({
     ? format(row.storyDate, "MMMM yyyy")
     : format(row.createdAt, "MMMM d, yyyy");
   const hasMedia = media.length > 0;
+  const hasBody = !!row.body?.trim();
   const heading = row.title?.trim() || dateLabel;
 
   // Filenames for the "download all" action: a slug of the memory plus an index.
@@ -97,13 +98,37 @@ export default async function StoryPage({
     </>
   );
 
+  const mediaEl =
+    media.length > 1 ? (
+      <MediaCarousel media={media.map(toCarouselMedia)} />
+    ) : hasMedia ? (
+      <MediaBlock m={media[0]} />
+    ) : null;
+
   return (
     <div className="story">
       <ScrollLock />
       <EscapeBack />
       <Timeline items={timeline} activeId={row.id} />
 
-      {hasMedia ? (
+      {hasMedia && !hasBody ? (
+        /* Media-only memory: float the photo/video on the dark stage, with a
+           bar of back (left), name + headline (centre), download (right). */
+        <div className="story-stage">
+          <div className="story-stage-bar">
+            {backLink}
+            <div className="story-stage-meta">
+              <p className="story-stage-date">{dateLabel}</p>
+              {row.title?.trim() && (
+                <h1 className="story-stage-title">{row.title.trim()}</h1>
+              )}
+              <p className="story-stage-name">{row.author}</p>
+            </div>
+            <DownloadAll items={downloadItems} />
+          </div>
+          <div className="story-stage-media">{mediaEl}</div>
+        </div>
+      ) : hasMedia ? (
         <div className={`story-cols ${media.length === 1 ? "single-media" : ""}`}>
           <div className="story-text">
             <div className="story-text-header">
@@ -112,13 +137,7 @@ export default async function StoryPage({
             </div>
             <div className="story-text-scroll">{prose}</div>
           </div>
-          <div className="story-media">
-            {media.length > 1 ? (
-              <MediaCarousel media={media.map(toCarouselMedia)} />
-            ) : (
-              <MediaBlock m={media[0]} />
-            )}
-          </div>
+          <div className="story-media">{mediaEl}</div>
         </div>
       ) : (
         <div className="story-inner">
@@ -178,6 +197,9 @@ function MediaBlock({ m }: { m: typeof schema.mediaItems.$inferSelect }) {
       <video
         src={asset(displayUrl(m.url, m.type))}
         controls
+        autoPlay
+        muted
+        playsInline
         preload="metadata"
         className="story-video"
         style={{

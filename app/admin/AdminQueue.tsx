@@ -22,8 +22,21 @@ export interface AdminPost {
   body: string | null;
   status: string;
   createdAt: number;
+  storyDate: number | null;
   media: AdminMedia[];
 }
+
+const MONTHS: { value: string; label: string }[] = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+].map((label, i) => ({ value: String(i + 1).padStart(2, "0"), label }));
+
+const YEARS: string[] = (() => {
+  const now = new Date().getFullYear();
+  const out: string[] = [];
+  for (let y = now; y >= 1962; y--) out.push(String(y));
+  return out;
+})();
 
 export function AdminQueue({
   items,
@@ -61,6 +74,15 @@ function AdminCard({ post }: { post: AdminPost }) {
   const [, startTransition] = useTransition();
   const created = new Date(post.createdAt);
 
+  const initialDate = post.storyDate ? new Date(post.storyDate) : null;
+  const [month, setMonth] = useState(
+    initialDate ? String(initialDate.getUTCMonth() + 1).padStart(2, "0") : "",
+  );
+  const [year, setYear] = useState(
+    initialDate ? String(initialDate.getUTCFullYear()) : "",
+  );
+  const [dateState, setDateState] = useState<"idle" | "saving" | "saved">("idle");
+
   async function setStatus(status: "approved" | "rejected") {
     setBusy(status === "approved" ? "approving" : "rejecting");
     try {
@@ -73,6 +95,23 @@ function AdminCard({ post }: { post: AdminPost }) {
       startTransition(() => router.refresh());
     } finally {
       setBusy(null);
+    }
+  }
+
+  async function saveDate() {
+    setDateState("saving");
+    try {
+      const storyDate = year && month ? `${year}-${month}-01` : null;
+      const res = await fetch(`/api/admin/posts/${post.id}/date`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ storyDate }),
+      });
+      if (!res.ok) throw new Error("Update failed");
+      setDateState("saved");
+      startTransition(() => router.refresh());
+    } catch {
+      setDateState("idle");
     }
   }
 
@@ -108,6 +147,54 @@ function AdminCard({ post }: { post: AdminPost }) {
           ))}
         </div>
       )}
+
+      <div className="flex items-center gap-2 flex-wrap border-t border-line pt-4 mb-4">
+        <span className="text-sm text-ink-3 mr-1">Story date</span>
+        <select
+          className="input !w-28 !py-1.5 !px-2.5 text-sm"
+          value={month}
+          onChange={(e) => {
+            setMonth(e.target.value);
+            setDateState("idle");
+          }}
+          aria-label="Month"
+        >
+          <option value="">Month</option>
+          {MONTHS.map((m) => (
+            <option key={m.value} value={m.value}>
+              {m.label}
+            </option>
+          ))}
+        </select>
+        <select
+          className="input !w-24 !py-1.5 !px-2.5 text-sm"
+          value={year}
+          onChange={(e) => {
+            setYear(e.target.value);
+            setDateState("idle");
+          }}
+          aria-label="Year"
+        >
+          <option value="">Year</option>
+          {YEARS.map((y) => (
+            <option key={y} value={y}>
+              {y}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="btn-ghost text-sm"
+          onClick={saveDate}
+          disabled={dateState === "saving"}
+        >
+          {dateState === "saving"
+            ? "Saving…"
+            : dateState === "saved"
+              ? "Saved ✓"
+              : "Save date"}
+        </button>
+      </div>
 
       {post.status === "pending" ? (
         <div className="flex justify-end gap-2 pt-1">

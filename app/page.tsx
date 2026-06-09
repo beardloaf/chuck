@@ -60,7 +60,7 @@ export default async function HomePage() {
   }));
 
   return (
-    <div className="w-full max-w-[2000px] mx-auto px-4 sm:px-6 py-8">
+    <div className="w-full">
       <Feed posts={items} />
     </div>
   );

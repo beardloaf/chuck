@@ -59,6 +59,7 @@ export default async function AdminPage({
     body: p.body,
     status: p.status,
     createdAt: p.createdAt.getTime(),
+    storyDate: p.storyDate ? p.storyDate.getTime() : null,
     media: (byPost.get(p.id) ?? []).map((m) => ({
       id: m.id,
       type: m.type as "audio" | "image" | "video",
