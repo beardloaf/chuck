@@ -5,22 +5,22 @@
 /* -------------------------------------------------------------------------- */
 
 :root {
-  /* Surfaces */
-  --bg: #0a0a0c;
-  --bg-soft: #111114;
-  --surface: #15151a;
-  --surface-2: #1c1c22;
-  --surface-3: #232329;
+  /* Surfaces — warm neutral greys (toward stone, not blue-tinted zinc) */
+  --bg: #0c0b0a;
+  --bg-soft: #14110f;
+  --surface: #1a1714;
+  --surface-2: #211d19;
+  --surface-3: #29241f;
 
-  /* Ink */
-  --ink: #f4f4f5;
-  --ink-2: #a1a1aa;
-  --ink-3: #71717a;
-  --ink-4: #52525b;
+  /* Ink — warm greys */
+  --ink: #f6f4f1;
+  --ink-2: #aaa39b;
+  --ink-3: #7c7269;
+  --ink-4: #595049;
 
-  /* Lines */
-  --line: #27272e;
-  --line-strong: #3a3a44;
+  /* Lines — warm greys */
+  --line: #2a2521;
+  --line-strong: #3d3832;
 
   /* Accent — electric orange-red, used for all active/primary states */
   --accent: #ff3d2e;
@@ -54,8 +54,8 @@
   --on-ink: var(--bg);
 
   /* Add button — slightly brighter than the option rows (not white) */
-  --add-bg: #2b2b34;
-  --add-bg-hover: #34343e;
+  --add-bg: #302b24;
+  --add-bg-hover: #3a342c;
   --add-ink: var(--ink);
 }
 
@@ -794,6 +794,7 @@ p, span, li, label, input, textarea, button.body, .body {
    spans 2 rows. aspect-ratio keeps them lined up with the square tiles. */
 .tile {
   position: relative;
+  isolation: isolate; /* contain the date's mix-blend-mode to this tile */
   aspect-ratio: 1 / 1;
   border-radius: var(--r-lg);
   overflow: hidden;
@@ -884,6 +885,7 @@ p, span, li, label, input, textarea, button.body, .body {
   align-items: stretch;
 }
 .cp-toggle {
+  position: relative; /* anchor for the sliding thumb */
   flex: 0 0 auto;
   display: flex;
   gap: 0.25rem;
@@ -891,7 +893,31 @@ p, span, li, label, input, textarea, button.body, .body {
   border-radius: var(--r-md);
   background: var(--surface-2);
 }
+/* The white active background, slides between the two options when switching. */
+.cp-toggle-thumb {
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: 0.25rem;
+  aspect-ratio: 1; /* matches a square option */
+  border-radius: calc(var(--r-md) - 3px);
+  background: var(--on);
+  z-index: 0;
+  pointer-events: none;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
+}
+.cp-toggle[data-active="recent"] .cp-toggle-thumb {
+  transform: translateX(0);
+}
+.cp-toggle[data-active="story"] .cp-toggle-thumb {
+  transform: translateX(calc(100% + 0.25rem));
+}
+.cp-toggle[data-active="none"] .cp-toggle-thumb {
+  opacity: 0;
+}
 .cp-toggle-opt {
+  position: relative; /* sit above the sliding thumb */
+  z-index: 1;
   height: 100%;
   aspect-ratio: 1;
   border-radius: calc(var(--r-md) - 3px);
@@ -901,14 +927,13 @@ p, span, li, label, input, textarea, button.body, .body {
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: background 140ms ease, color 140ms ease;
+  transition: color 160ms ease;
 }
 .cp-toggle-opt:hover {
   color: var(--ink);
 }
 .cp-toggle-opt[data-on="true"] {
-  background: var(--on);
-  color: var(--on-ink);
+  color: var(--on-ink); /* the thumb provides the white background */
 }
 .cp-icon {
   flex: 0 0 auto;
@@ -957,6 +982,11 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .add-btn svg {
   flex-shrink: 0;
+}
+/* The label may be wrapped in a <span> (control panel), which the body-text
+   reset turns lowercase — keep add buttons uppercase everywhere. */
+.add-btn span {
+  text-transform: uppercase;
 }
 /* In the control panel it fills the remaining width of the actions row. */
 .cp-add {
@@ -1108,27 +1138,17 @@ p, span, li, label, input, textarea, button.body, .body {
   align-items: center;
   gap: 0.5rem;
   padding: 0.85rem 1rem;
-  font-size: 0.72rem;
   font-weight: 500;
-  color: var(--ink-3);
   z-index: 2;
   pointer-events: none;
+  /* The date renders as the inverse of whatever sits behind it, so it stays
+     high-contrast and legible over any photo, video, or coloured tile. */
+  color: #fff;
+  mix-blend-mode: difference;
 }
 .tile-head .tile-date {
   letter-spacing: 0.02em;
-}
-.tile-head.on-media {
-  color: rgba(244, 244, 245, 0.9);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-}
-.tile-head.on-media::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 5rem;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.55), transparent);
-  z-index: -1;
-  pointer-events: none;
+  font-size: 0.845rem; /* ~2px larger than the previous 0.72rem */
 }
 
 /* Footer: bottom area with author pill + headline + optional audio player */

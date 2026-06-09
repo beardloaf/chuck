@@ -2,7 +2,10 @@ import { db, schema } from "@/lib/db";
 import { desc, eq, inArray } from "drizzle-orm";
 import { Feed } from "./feed/Feed";
 import type { FeedPost } from "./feed/Tile";
+import { asset } from "@/lib/site";
 
+// Dynamic for the normal server build. The static GitHub Pages build swaps this
+// to "force-static" (see scripts/build-static.mjs) so it prerenders at build.
 export const dynamic = "force-dynamic";
 
 const MAX_POSTS = 200;
@@ -44,7 +47,7 @@ export default async function HomePage() {
     media: (byPost.get(p.id) ?? []).map((m) => ({
       id: m.id,
       type: m.type as "audio" | "image" | "video",
-      url: m.url,
+      url: asset(m.url),
       mime: m.mime,
       durationMs: m.durationMs,
       width: m.width,

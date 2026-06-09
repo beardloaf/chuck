@@ -11,6 +11,7 @@ import {
 import { SideSheet } from "../SideSheet";
 import { Composer } from "../share/Composer";
 import { SiteNav } from "../SiteNav";
+import { READ_ONLY } from "@/lib/site";
 
 /**
  * Client feed: holds filter (content type), sort mode (recent / story date /
@@ -91,9 +92,14 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
         )}
       </div>
 
-      <SideSheet open={open} onClose={requestClose} title="Add a story">
-        <Composer onSubmitted={() => setDirty(false)} onDirtyChange={setDirty} />
-      </SideSheet>
+      {!READ_ONLY && (
+        <SideSheet open={open} onClose={requestClose} title="Add a story">
+          <Composer
+            onSubmitted={() => setDirty(false)}
+            onDirtyChange={setDirty}
+          />
+        </SideSheet>
+      )}
     </>
   );
 }

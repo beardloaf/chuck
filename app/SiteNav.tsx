@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./ThemeToggle";
+import { READ_ONLY } from "@/lib/site";
 
 const NAV = [
   { href: "/home", label: "Home" },
@@ -37,17 +38,19 @@ export function SiteNav({ onAdd }: { onAdd?: () => void }) {
       </nav>
       <div className="topbar-actions">
         <ThemeToggle />
-        {onAdd ? (
-          <button type="button" className="add-btn" onClick={onAdd}>
-            <PlusIcon />
-            Add a memory
-          </button>
-        ) : (
-          <Link href="/" className="add-btn">
-            <PlusIcon />
-            Add a memory
-          </Link>
-        )}
+        {/* The published (read-only) site has no composer to open. */}
+        {!READ_ONLY &&
+          (onAdd ? (
+            <button type="button" className="add-btn" onClick={onAdd}>
+              <PlusIcon />
+              Add a memory
+            </button>
+          ) : (
+            <Link href="/" className="add-btn">
+              <PlusIcon />
+              Add a memory
+            </Link>
+          ))}
       </div>
     </header>
   );

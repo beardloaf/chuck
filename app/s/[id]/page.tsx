@@ -9,7 +9,10 @@ import { EscapeBack } from "./EscapeBack";
 import { ScrollLock } from "./ScrollLock";
 import { MediaCarousel } from "./MediaCarousel";
 import { DownloadAll, type DownloadItem } from "./DownloadAll";
+import { asset } from "@/lib/site";
 
+// Dynamic for the normal server build. The static GitHub Pages build swaps this
+// to "force-static" and injects generateStaticParams (see build-static.mjs).
 export const dynamic = "force-dynamic";
 
 export default async function StoryPage({
@@ -54,7 +57,7 @@ export default async function StoryPage({
   const firstImageByPost = new Map<string, string>();
   for (const m of allMedia) {
     if (m.type === "image" && !firstImageByPost.has(m.postId)) {
-      firstImageByPost.set(m.postId, m.url);
+      firstImageByPost.set(m.postId, asset(m.url));
     }
   }
   const timeline: TimelineItem[] = allPosts.map((p) => ({
@@ -74,7 +77,7 @@ export default async function StoryPage({
   // Filenames for the "download all" action: a slug of the memory plus an index.
   const baseName = slugify(row.title?.trim() || row.author || dateLabel);
   const downloadItems: DownloadItem[] = media.map((m, i) => ({
-    url: m.url,
+    url: asset(m.url),
     filename: `${baseName}-${i + 1}.${extFromUrl(m.url)}`,
   }));
 
@@ -134,7 +137,7 @@ function toCarouselMedia(m: typeof schema.mediaItems.$inferSelect) {
   return {
     id: m.id,
     type: m.type,
-    url: m.url,
+    url: asset(m.url),
     width: m.width,
     height: m.height,
     durationMs: m.durationMs,
@@ -161,7 +164,7 @@ function MediaBlock({ m }: { m: typeof schema.mediaItems.$inferSelect }) {
     return (
       /* eslint-disable-next-line @next/next/no-img-element */
       <img
-        src={m.url}
+        src={asset(m.url)}
         alt=""
         className="story-image"
         style={{
@@ -173,7 +176,7 @@ function MediaBlock({ m }: { m: typeof schema.mediaItems.$inferSelect }) {
   if (m.type === "video") {
     return (
       <video
-        src={m.url}
+        src={asset(m.url)}
         controls
         preload="metadata"
         className="story-video"
@@ -186,7 +189,7 @@ function MediaBlock({ m }: { m: typeof schema.mediaItems.$inferSelect }) {
   return (
     <div className="story-audio">
       <AudioPlayer
-        src={m.url}
+        src={asset(m.url)}
         durationMs={m.durationMs ?? undefined}
         peaks={m.waveformPeaks ?? undefined}
       />

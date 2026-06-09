@@ -41,8 +41,12 @@ yarn-error.log*
 next-env.d.ts
 
 # mikula — runtime data
-/data
-/public/uploads
+# The approved-content DB and its uploads ARE committed so the GitHub Pages
+# workflow can build the static site. Transient SQLite sidecar files are not.
+/data/*.db-wal
+/data/*.db-shm
 
 # claude code — personal/local config
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
+.claude/scheduled_tasks.json

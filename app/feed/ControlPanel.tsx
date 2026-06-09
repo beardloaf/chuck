@@ -1,5 +1,7 @@
 "use client";
 
+import { READ_ONLY } from "@/lib/site";
+
 export type FilterKey = "all" | "words" | "photo" | "video";
 export type SortMode = "recent" | "story" | "random";
 
@@ -50,7 +52,15 @@ export function ControlPanel({
       ))}
 
       <div className="cp-actions">
-        <div className="cp-toggle" role="group" aria-label="Sort order">
+        <div
+          className="cp-toggle"
+          role="group"
+          aria-label="Sort order"
+          data-active={
+            mode === "recent" ? "recent" : mode === "story" ? "story" : "none"
+          }
+        >
+          <span className="cp-toggle-thumb" aria-hidden="true" />
           <button
             type="button"
             className="cp-toggle-opt"
@@ -82,15 +92,17 @@ export function ControlPanel({
         >
           <ShuffleIcon />
         </button>
-        <button
-          type="button"
-          className="add-btn cp-add"
-          onClick={onAdd}
-          aria-label="Add a memory"
-        >
-          <PlusIcon />
-          <span>Add a memory</span>
-        </button>
+        {!READ_ONLY && (
+          <button
+            type="button"
+            className="add-btn cp-add"
+            onClick={onAdd}
+            aria-label="Add a memory"
+          >
+            <PlusIcon />
+            <span>Add a memory</span>
+          </button>
+        )}
       </div>
     </div>
   );
