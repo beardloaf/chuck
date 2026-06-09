@@ -13,8 +13,21 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>("dark");
 
   useEffect(() => {
-    const saved = (localStorage.getItem("theme") as Theme | null) ?? "dark";
-    setTheme(saved);
+    // The pre-paint script already applied the active theme (saved or OS).
+    const current: Theme =
+      document.documentElement.dataset.theme === "light" ? "light" : "dark";
+    setTheme(current);
+
+    // With no explicit choice saved, follow OS changes live.
+    const mq = window.matchMedia("(prefers-color-scheme: light)");
+    const onChange = () => {
+      if (localStorage.getItem("theme")) return;
+      const sys: Theme = mq.matches ? "light" : "dark";
+      setTheme(sys);
+      document.documentElement.dataset.theme = sys;
+    };
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
   }, []);
 
   function toggle() {

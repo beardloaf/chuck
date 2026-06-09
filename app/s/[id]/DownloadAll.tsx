@@ -43,8 +43,7 @@ export function DownloadAll({ items }: { items: DownloadItem[] }) {
     }
   }
 
-  const label =
-    items.length > 1 ? `Download all (${items.length})` : "Download";
+  const label = items.length > 1 ? "Download all" : "Download";
 
   return (
     <button

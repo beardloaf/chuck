@@ -14,8 +14,9 @@ export const metadata: Metadata = {
   description: "A small home for stories.",
 };
 
-// Applies the saved theme before paint to avoid a flash of the wrong theme.
-const themeInit = `try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.dataset.theme='light';}}catch(e){}`;
+// Applies the theme before paint to avoid a flash. Uses the saved choice if
+// there is one, otherwise follows the OS (prefers-color-scheme).
+const themeInit = `try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.dataset.theme=t;}catch(e){}`;
 
 export default function RootLayout({
   children,

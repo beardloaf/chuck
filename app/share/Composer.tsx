@@ -7,13 +7,6 @@ import { filesToAttachments } from "./mediaFiles";
 import type { Attachment } from "./types";
 
 const STORAGE_KEY = "mikula.composer.v1";
-const PROMPTS = [
-  "What happened today?",
-  "Tell us something true.",
-  "Say it out loud.",
-  "Write a thought, big or small.",
-  "Anything on your mind?",
-];
 
 export function Composer({
   onSubmitted,
@@ -28,17 +21,12 @@ export function Composer({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [recording, setRecording] = useState(false);
   const [dropActive, setDropActive] = useState(false);
-  const [videoOn, setVideoOn] = useState(true); // video on by default
   const [mediaMode, setMediaMode] = useState<"upload" | "record">("upload");
   const [month, setMonth] = useState(""); // "01".."12"
   const [year, setYear] = useState(""); // "YYYY"
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const [prompt, setPrompt] = useState(PROMPTS[0]);
-  useEffect(() => {
-    setPrompt(PROMPTS[Math.floor(Math.random() * PROMPTS.length)]);
-  }, []);
 
   useEffect(() => {
     try {
@@ -201,7 +189,7 @@ export function Composer({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`composer space-y-4 ${dropActive ? "is-dropping" : ""}`}
+      className={`composer ${dropActive ? "is-dropping" : ""}`}
       onDragEnter={onDragEnter}
       onDragOver={(e) => {
         if (e.dataTransfer.types.includes("Files")) e.preventDefault();
@@ -217,7 +205,7 @@ export function Composer({
       <input
         type="text"
         className="input"
-        placeholder="Your name (or leave it blank)"
+        placeholder="Your name"
         value={author}
         onChange={(e) => setAuthor(e.target.value)}
         maxLength={80}
@@ -234,7 +222,7 @@ export function Composer({
 
       <textarea
         className="textarea"
-        placeholder={prompt}
+        placeholder="Tell your story"
         value={body}
         onChange={(e) => setBody(e.target.value)}
         maxLength={20_000}
@@ -303,7 +291,7 @@ export function Composer({
 
       {recording ? (
         <Recorder
-          withVideo={videoOn}
+          withVideo={true}
           onComplete={(att) => {
             addAttachments([att]);
             setRecording(false);
@@ -335,40 +323,16 @@ export function Composer({
           {mediaMode === "upload" ? (
             <MediaPicker onAdd={addAttachments} />
           ) : (
-            <div className="space-y-3">
-              <button
-                type="button"
-                className="action-tile"
-                onClick={() => setRecording(true)}
-              >
-                <span className="tile-icon" aria-hidden>
-                  <RecIcon />
-                </span>
-                <span className="flex flex-col gap-0.5">
-                  <span className="tile-label">Start recording</span>
-                  <span className="tile-sub">
-                    {videoOn ? "video with sound" : "voice only"}
-                  </span>
-                </span>
-              </button>
-
-              <div className="switch-row">
-                <button
-                  type="button"
-                  className="switch"
-                  role="switch"
-                  aria-checked={videoOn}
-                  data-on={videoOn ? "true" : "false"}
-                  onClick={() => setVideoOn((v) => !v)}
-                  aria-label="Capture video"
-                >
-                  <span className="switch-knob" />
-                </button>
-                <span className="switch-label">
-                  {videoOn ? "Video on" : "Voice only"}
-                </span>
-              </div>
-            </div>
+            <button
+              type="button"
+              className="action-tile"
+              onClick={() => setRecording(true)}
+            >
+              <span className="tile-icon" aria-hidden>
+                <RecIcon />
+              </span>
+              <span className="tile-label">Start recording</span>
+            </button>
           )}
         </div>
       )}
@@ -380,7 +344,7 @@ export function Composer({
       )}
 
       <div className="flex items-center justify-between gap-4 pt-2">
-        <p className="text-xs text-ink-3 max-w-[18rem]">
+        <p className="composer-note">
           Posts go through a quick review before appearing in the feed.
         </p>
         <button type="submit" className="btn-primary" disabled={!canSubmit}>

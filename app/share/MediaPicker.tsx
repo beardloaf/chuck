@@ -45,10 +45,7 @@ export function MediaPicker({ onAdd }: Props) {
       <span className="tile-icon" aria-hidden>
         <PlusIcon />
       </span>
-      <span className="flex flex-col gap-0.5">
-        <span className="tile-label">Add media</span>
-        <span className="tile-sub">photo or video</span>
-      </span>
+      <span className="tile-label">Add photos or videos</span>
       <input
         ref={inputRef}
         type="file"
