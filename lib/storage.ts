@@ -96,8 +96,10 @@ export async function saveUpload(file: File): Promise<SavedFile> {
   const buf = Buffer.from(await file.arrayBuffer());
 
   // Hosts with a read-only/ephemeral filesystem (Vercel) → Vercel Blob.
+  // Works with either a read-write token or a connected store (BLOB_STORE_ID),
+  // which the SDK authenticates via the function's OIDC token.
   // Local dev → write under public/ so it's served at /uploads/...
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
+  if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
     const { put } = await import("@vercel/blob");
     const { url } = await put(key, buf, { access: "public", contentType: mime });
     return { url, type, mime, size: file.size };
