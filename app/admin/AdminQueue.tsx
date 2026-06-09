@@ -19,6 +19,7 @@ export interface AdminMedia {
 export interface AdminPost {
   id: string;
   author: string;
+  title: string | null;
   body: string | null;
   status: string;
   createdAt: number;
@@ -37,6 +38,10 @@ const YEARS: string[] = (() => {
   for (let y = now; y >= 1962; y--) out.push(String(y));
   return out;
 })();
+
+const monthOf = (d: Date | null) =>
+  d ? String(d.getUTCMonth() + 1).padStart(2, "0") : "";
+const yearOf = (d: Date | null) => (d ? String(d.getUTCFullYear()) : "");
 
 export function AdminQueue({
   items,
@@ -70,18 +75,27 @@ export function AdminQueue({
 
 function AdminCard({ post }: { post: AdminPost }) {
   const router = useRouter();
-  const [busy, setBusy] = useState<"approving" | "rejecting" | null>(null);
+  const [busy, setBusy] = useState<
+    "approving" | "rejecting" | "deleting" | null
+  >(null);
   const [, startTransition] = useTransition();
   const created = new Date(post.createdAt);
+  const storyDate = post.storyDate ? new Date(post.storyDate) : null;
 
-  const initialDate = post.storyDate ? new Date(post.storyDate) : null;
-  const [month, setMonth] = useState(
-    initialDate ? String(initialDate.getUTCMonth() + 1).padStart(2, "0") : "",
-  );
-  const [year, setYear] = useState(
-    initialDate ? String(initialDate.getUTCFullYear()) : "",
-  );
-  const [dateState, setDateState] = useState<"idle" | "saving" | "saved">("idle");
+  // Editable fields.
+  const [author, setAuthor] = useState(post.author);
+  const [title, setTitle] = useState(post.title ?? "");
+  const [body, setBody] = useState(post.body ?? "");
+  const [month, setMonth] = useState(monthOf(storyDate));
+  const [year, setYear] = useState(yearOf(storyDate));
+  const [saving, setSaving] = useState(false);
+
+  const dirty =
+    author !== post.author ||
+    title !== (post.title ?? "") ||
+    body !== (post.body ?? "") ||
+    month !== monthOf(storyDate) ||
+    year !== yearOf(storyDate);
 
   async function setStatus(status: "approved" | "rejected") {
     setBusy(status === "approved" ? "approving" : "rejecting");
@@ -98,47 +112,80 @@ function AdminCard({ post }: { post: AdminPost }) {
     }
   }
 
-  async function saveDate() {
-    setDateState("saving");
+  async function save() {
+    setSaving(true);
     try {
-      const storyDate = year && month ? `${year}-${month}-01` : null;
-      const res = await fetch(`/api/admin/posts/${post.id}/date`, {
-        method: "POST",
+      const res = await fetch(`/api/admin/posts/${post.id}`, {
+        method: "PATCH",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ storyDate }),
+        body: JSON.stringify({
+          author,
+          title,
+          body,
+          storyDate: year && month ? `${year}-${month}-01` : null,
+        }),
       });
       if (!res.ok) throw new Error("Update failed");
-      setDateState("saved");
       startTransition(() => router.refresh());
-    } catch {
-      setDateState("idle");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove() {
+    if (!window.confirm("Delete this post permanently? This can't be undone."))
+      return;
+    setBusy("deleting");
+    try {
+      const res = await fetch(`/api/admin/posts/${post.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Delete failed");
+      startTransition(() => router.refresh());
+    } finally {
+      setBusy(null);
     }
   }
 
   return (
     <article className="card p-5 sm:p-6">
       <header className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2 text-sm text-ink-3">
-          <span className="avatar-pill">
-            <span className="avatar-dot">{(post.author?.[0] ?? "?").toUpperCase()}</span>
-            <span>{post.author}</span>
-          </span>
-          <span aria-hidden>·</span>
-          <time
-            dateTime={created.toISOString()}
-            title={created.toLocaleString()}
-          >
-            {formatDistanceToNowStrict(created, { addSuffix: true })}
-          </time>
-        </div>
+        <time
+          className="text-sm text-ink-3"
+          dateTime={created.toISOString()}
+          title={created.toLocaleString()}
+        >
+          {formatDistanceToNowStrict(created, { addSuffix: true })}
+        </time>
         <StatusPill status={post.status} />
       </header>
 
-      {post.body && (
-        <p className="text-ink whitespace-pre-wrap leading-relaxed mb-4">
-          {post.body}
-        </p>
-      )}
+      <div className="space-y-2.5 mb-4">
+        <input
+          className="input !py-2 text-sm"
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
+          placeholder="Name"
+          aria-label="Name"
+          maxLength={80}
+        />
+        <input
+          className="input input-headline !py-2"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Headline"
+          aria-label="Headline"
+          maxLength={200}
+        />
+        <textarea
+          className="textarea !min-h-[4.5rem] text-sm"
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          placeholder="Story"
+          aria-label="Story"
+          maxLength={20_000}
+        />
+      </div>
 
       {post.media.length > 0 && (
         <div className="space-y-2 mb-4">
@@ -148,87 +195,88 @@ function AdminCard({ post }: { post: AdminPost }) {
         </div>
       )}
 
-      <div className="flex items-center gap-2 flex-wrap border-t border-line pt-4 mb-4">
-        <span className="text-sm text-ink-3 mr-1">Story date</span>
-        <select
-          className="input !w-28 !py-1.5 !px-2.5 text-sm"
-          value={month}
-          onChange={(e) => {
-            setMonth(e.target.value);
-            setDateState("idle");
-          }}
-          aria-label="Month"
-        >
-          <option value="">Month</option>
-          {MONTHS.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </select>
-        <select
-          className="input !w-24 !py-1.5 !px-2.5 text-sm"
-          value={year}
-          onChange={(e) => {
-            setYear(e.target.value);
-            setDateState("idle");
-          }}
-          aria-label="Year"
-        >
-          <option value="">Year</option>
-          {YEARS.map((y) => (
-            <option key={y} value={y}>
-              {y}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="btn-ghost text-sm"
-          onClick={saveDate}
-          disabled={dateState === "saving"}
-        >
-          {dateState === "saving"
-            ? "Saving…"
-            : dateState === "saved"
-              ? "Saved ✓"
-              : "Save date"}
-        </button>
-      </div>
+      <div className="flex items-center justify-between gap-3 flex-wrap border-t border-line pt-4">
+        <div className="flex items-center gap-2">
+          <select
+            className="input !w-24 !py-1.5 !px-2.5 text-sm"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+            aria-label="Month"
+          >
+            <option value="">Month</option>
+            {MONTHS.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className="input !w-20 !py-1.5 !px-2.5 text-sm"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            aria-label="Year"
+          >
+            <option value="">Year</option>
+            {YEARS.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn-ghost text-sm"
+            onClick={save}
+            disabled={saving || !dirty}
+          >
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
 
-      {post.status === "pending" ? (
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            className="btn-danger"
-            onClick={() => setStatus("rejected")}
-            disabled={busy != null}
-          >
-            {busy === "rejecting" ? "Rejecting…" : "Reject"}
-          </button>
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setStatus("approved")}
-            disabled={busy != null}
-          >
-            {busy === "approving" ? "Approving…" : "Approve"}
-          </button>
+        <div className="flex items-center gap-2">
+          {post.status === "rejected" && (
+            <button
+              type="button"
+              className="btn-danger text-sm"
+              onClick={remove}
+              disabled={busy != null}
+            >
+              {busy === "deleting" ? "Deleting…" : "Delete"}
+            </button>
+          )}
+          {post.status === "pending" ? (
+            <>
+              <button
+                type="button"
+                className="btn-ghost"
+                onClick={() => setStatus("rejected")}
+                disabled={busy != null}
+              >
+                {busy === "rejecting" ? "Rejecting…" : "Reject"}
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => setStatus("approved")}
+                disabled={busy != null}
+              >
+                {busy === "approving" ? "Approving…" : "Approve"}
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() =>
+                setStatus(post.status === "approved" ? "rejected" : "approved")
+              }
+              disabled={busy != null}
+            >
+              {post.status === "approved" ? "Move to rejected" : "Approve"}
+            </button>
+          )}
         </div>
-      ) : (
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            className="btn-ghost"
-            onClick={() =>
-              setStatus(post.status === "approved" ? "rejected" : "approved")
-            }
-            disabled={busy != null}
-          >
-            {post.status === "approved" ? "Move to rejected" : "Approve"}
-          </button>
-        </div>
-      )}
+      </div>
     </article>
   );
 }

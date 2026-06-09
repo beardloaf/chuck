@@ -182,22 +182,22 @@ export function Tile({ post }: { post: FeedPost }) {
             {post.author}
           </span>
           {headline && <p className="tile-headline">{headline}</p>}
-
-          {isMultiImage && (
-            <div className="carousel-dots">
-              {images.map((m, i) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="carousel-dot"
-                  data-on={i === idx}
-                  onClick={(e) => jump(i, e)}
-                  aria-label={`Image ${i + 1}`}
-                />
-              ))}
-            </div>
-          )}
         </div>
+
+        {isMultiImage && (
+          <div className="tile-dots">
+            {images.map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                className="tile-dot"
+                data-on={i === idx}
+                onClick={(e) => jump(i, e)}
+                aria-label={`Image ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
 
         {/* Multi-media count badge (video duration badge is rendered by TileVideo) */}
         {post.media.length > 1 && !isMultiImage && (

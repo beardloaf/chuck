@@ -112,10 +112,10 @@ export default async function StoryPage({
       <Timeline items={timeline} activeId={row.id} />
 
       {hasMedia && !hasBody ? (
-        /* Media-only memory: float the photo/video on the dark stage, with a
-           bar of back (left), name + headline (centre), download (right). */
+        /* Media-only memory: float the photo/video on the dark stage. Top bar:
+           back (left), name + headline (centre), download (right). */
         <div className="story-stage">
-          <div className="story-stage-bar">
+          <div className="story-topbar">
             {backLink}
             <div className="story-stage-meta">
               <p className="story-stage-date">{dateLabel}</p>
@@ -129,16 +129,23 @@ export default async function StoryPage({
           <div className="story-stage-media">{mediaEl}</div>
         </div>
       ) : hasMedia ? (
-        <div className={`story-cols ${media.length === 1 ? "single-media" : ""}`}>
-          <div className="story-text">
-            <div className="story-text-header">
-              {backLink}
-              <DownloadAll items={downloadItems} />
-            </div>
-            <div className="story-text-scroll">{prose}</div>
+        /* Media + story text: same top bar (back left, download right) so the
+           buttons sit in the same place as the media-only view, then columns. */
+        <>
+          <div className="story-topbar">
+            {backLink}
+            <span aria-hidden />
+            <DownloadAll items={downloadItems} />
           </div>
-          <div className="story-media">{mediaEl}</div>
-        </div>
+          <div
+            className={`story-cols ${media.length === 1 ? "single-media" : ""}`}
+          >
+            <div className="story-text">
+              <div className="story-text-scroll">{prose}</div>
+            </div>
+            <div className="story-media">{mediaEl}</div>
+          </div>
+        </>
       ) : (
         <div className="story-inner">
           <div className="story-single">

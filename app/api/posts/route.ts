@@ -63,14 +63,21 @@ export async function POST(req: Request) {
   }
 
   const files = form.getAll("media[]").filter((v): v is File => v instanceof File);
-  if (files.length > MAX_MEDIA_ITEMS) {
+  // Files already uploaded directly to Vercel Blob by the client (used for
+  // large files that exceed the function body limit, e.g. videos).
+  const blobUrls = form.getAll("mediaUrl[]").map((v) => String(v));
+  const blobTypes = form.getAll("mediaType[]").map((v) => String(v));
+  const blobMimes = form.getAll("mediaMime[]").map((v) => String(v));
+  const mediaCount = files.length + blobUrls.length;
+
+  if (mediaCount > MAX_MEDIA_ITEMS) {
     return Response.json(
       { error: `Too many attachments (max ${MAX_MEDIA_ITEMS})` },
       { status: 400 },
     );
   }
 
-  if (title.length === 0 && body.length === 0 && files.length === 0) {
+  if (title.length === 0 && body.length === 0 && mediaCount === 0) {
     return Response.json(
       { error: "Empty post — add a headline, write something, or attach something." },
       { status: 400 },
@@ -116,6 +123,34 @@ export async function POST(req: Request) {
     const status = e instanceof StorageError ? e.status : 500;
     const msg = e instanceof Error ? e.message : "Upload failed";
     return Response.json({ error: msg }, { status });
+  }
+
+  // Media already uploaded to our Vercel Blob store by the client. Only accept
+  // URLs that point at our blob storage (forged ones are also gated by review).
+  for (let i = 0; i < blobUrls.length; i++) {
+    const url = blobUrls[i];
+    const type = blobTypes[i];
+    if (!/^https:\/\/[\w-]+\.blob\.vercel-storage\.com\//i.test(url)) continue;
+    if (type !== "audio" && type !== "image" && type !== "video") continue;
+    let peaks: number[] | undefined;
+    if (type === "audio" && peaksRaw[i]) {
+      try {
+        const ok = PeaksSchema.safeParse(JSON.parse(peaksRaw[i]));
+        if (ok.success) peaks = ok.data;
+      } catch {
+        /* ignore */
+      }
+    }
+    saved.push({
+      url,
+      type,
+      mime: blobMimes[i] || "application/octet-stream",
+      size: 0,
+      durationMs: durations[i] ?? undefined,
+      width: widths[i] ?? undefined,
+      height: heights[i] ?? undefined,
+      peaks,
+    });
   }
 
   // New posts land as "pending" — admin approval gates them to the feed.

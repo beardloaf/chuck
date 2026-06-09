@@ -56,6 +56,7 @@ export default async function AdminPage({
   const items: AdminPost[] = rows.map((p) => ({
     id: p.id,
     author: p.author,
+    title: p.title,
     body: p.body,
     status: p.status,
     createdAt: p.createdAt.getTime(),

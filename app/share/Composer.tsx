@@ -118,6 +118,9 @@ export function Composer({
     );
   }, [submitting, title, body, attachments.length]);
 
+  // Show the "when was this?" date once there's a story or any media.
+  const showDate = body.trim().length > 0 || attachments.length > 0;
+
   // Report "dirty" so the sheet can confirm before discarding progress.
   const dirty =
     !success &&
@@ -141,17 +144,40 @@ export function Composer({
       fd.append("title", title.trim());
       fd.append("body", body.trim());
       const yr = year.trim();
-      if (attachments.length > 0 && /^\d{4}$/.test(yr)) {
+      if (/^\d{4}$/.test(yr)) {
         // Store the chosen month/year as the first of that month.
         const mo = /^\d{2}$/.test(month) ? month : "01";
         fd.append("storyDate", `${yr}-${mo}-01`);
       }
-      for (const a of attachments) {
-        fd.append("media[]", a.file, a.file.name);
-        fd.append("durationMs", a.durationMs != null ? String(a.durationMs) : "");
-        fd.append("width", a.width != null ? String(a.width) : "");
-        fd.append("height", a.height != null ? String(a.height) : "");
-        fd.append("peaks", a.peaks ? JSON.stringify(a.peaks) : "");
+      // On Vercel, upload media straight to Blob (handles large videos that
+      // would exceed the function body limit). Locally, post the files inline.
+      const useBlob =
+        process.env.NEXT_PUBLIC_BLOB_UPLOAD === "1" && attachments.length > 0;
+      if (useBlob) {
+        const { upload } = await import("@vercel/blob/client");
+        for (const a of attachments) {
+          const safeName = a.file.name.replace(/[^\w.-]/g, "_") || "upload";
+          const blob = await upload(`uploads/${Date.now()}-${safeName}`, a.file, {
+            access: "public",
+            handleUploadUrl: "/api/blob/upload",
+            contentType: a.file.type || undefined,
+          });
+          fd.append("mediaUrl[]", blob.url);
+          fd.append("mediaType[]", a.type);
+          fd.append("mediaMime[]", a.file.type || "");
+          fd.append("durationMs", a.durationMs != null ? String(a.durationMs) : "");
+          fd.append("width", a.width != null ? String(a.width) : "");
+          fd.append("height", a.height != null ? String(a.height) : "");
+          fd.append("peaks", a.peaks ? JSON.stringify(a.peaks) : "");
+        }
+      } else {
+        for (const a of attachments) {
+          fd.append("media[]", a.file, a.file.name);
+          fd.append("durationMs", a.durationMs != null ? String(a.durationMs) : "");
+          fd.append("width", a.width != null ? String(a.width) : "");
+          fd.append("height", a.height != null ? String(a.height) : "");
+          fd.append("peaks", a.peaks ? JSON.stringify(a.peaks) : "");
+        }
       }
 
       const res = await fetch("/api/posts", { method: "POST", body: fd });
@@ -245,32 +271,33 @@ export function Composer({
       />
 
       {attachments.length > 0 && (
-        <>
-          <ul className="space-y-2">
-            {attachments.map((a) => (
-              <li key={a.id} className="attachment-chip">
-                <AttachmentPreview a={a} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-ink truncate">
-                    {labelFor(a)}
-                  </p>
-                  <p className="text-xs text-ink-3 truncate">
-                    {a.file.name}
-                    {a.durationMs ? ` · ${formatDuration(a.durationMs)}` : ""}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="chip-remove"
-                  onClick={() => removeAttachment(a.id)}
-                  aria-label={`Remove ${a.type}`}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+        <ul className="space-y-2">
+          {attachments.map((a) => (
+            <li key={a.id} className="attachment-chip">
+              <AttachmentPreview a={a} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-ink truncate">
+                  {labelFor(a)}
+                </p>
+                <p className="text-xs text-ink-3 truncate">
+                  {a.file.name}
+                  {a.durationMs ? ` · ${formatDuration(a.durationMs)}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                className="chip-remove"
+                onClick={() => removeAttachment(a.id)}
+                aria-label={`Remove ${a.type}`}
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
 
+      {showDate && (
           <label className="flex items-center justify-between gap-3 px-1">
             <span className="text-sm text-ink-2">When was this?</span>
             <span className="flex gap-2">
@@ -302,7 +329,6 @@ export function Composer({
               </select>
             </span>
           </label>
-        </>
       )}
 
       {recording ? (
