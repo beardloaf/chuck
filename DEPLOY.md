@@ -40,58 +40,57 @@ any new files under `public/uploads/` → push to `main`.
 >   custom domain served at the root, the workflow picks up the new base path
 >   automatically from `actions/configure-pages`.
 
-## Full dynamic app
+## Full dynamic app (Vercel)
 
-To run the full app online (uploads + admin), swap two adapters.
+The adapters are **already wired up**: the app uses Turso (libSQL) for the
+database and Vercel Blob for uploads whenever the relevant env vars are present,
+and falls back to the on-disk SQLite + `public/uploads/` when they're not (so
+local dev and the Pages build are unchanged). Vercel's filesystem is read-only
+and ephemeral, which is why these hosted services are required there.
 
-## 1. Database → Neon Postgres (or Turso)
+Env vars (see `.env.example`):
 
-1. Create a free Neon project at https://neon.tech and copy the connection
-   string. Set it in `.env`:
-   ```
-   DATABASE_URL=postgres://...
-   ```
-2. Install the Neon driver and switch dialect:
+| Var | Where to get it |
+| --- | --- |
+| `TURSO_DATABASE_URL` | `turso db show --url <name>` |
+| `TURSO_AUTH_TOKEN` | `turso db tokens create <name>` |
+| `BLOB_READ_WRITE_TOKEN` | added automatically when you attach a Blob store to the Vercel project |
+| `ADMIN_TOKEN` | your moderation password (any long random string) |
+
+### One-time setup
+
+1. **Create the database.** Install the [Turso CLI](https://docs.turso.tech),
+   then:
    ```bash
-   npm install @neondatabase/serverless drizzle-orm
-   npm uninstall better-sqlite3 @types/better-sqlite3
+   turso db create chuck
+   turso db show --url chuck          # → TURSO_DATABASE_URL
+   turso db tokens create chuck       # → TURSO_AUTH_TOKEN
    ```
-3. Replace `lib/db/index.ts` with a Neon client:
-   ```ts
-   import { neon } from "@neondatabase/serverless";
-   import { drizzle } from "drizzle-orm/neon-http";
-   import * as schema from "./schema";
-   const sql = neon(process.env.DATABASE_URL!);
-   export const db = drizzle(sql, { schema });
-   export { schema };
-   ```
-4. Rewrite `lib/db/schema.ts` using `pgTable` (uuid pks, `timestamp` for
-   `createdAt`, `jsonb` for `waveformPeaks`).
-5. Update `drizzle.config.ts` to `dialect: "postgresql"` and run
-   `npx drizzle-kit push`.
-
-## 2. Storage → Vercel Blob
-
-1. Create the Blob store from the Vercel dashboard and copy the token:
-   ```
-   BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
-   ```
-2. Install:
+2. **Create the schema** in Turso:
    ```bash
-   npm install @vercel/blob
+   TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… npm run db:push
    ```
-3. Replace `lib/storage.ts` so `saveUpload` calls `put(filename, file, { access: "public" })`
-   from `@vercel/blob` and returns the resulting `url`. Mime/size validation
-   stays put.
+3. **Load the existing memories** from the local DB into Turso:
+   ```bash
+   TURSO_DATABASE_URL=… TURSO_AUTH_TOKEN=… node scripts/migrate-to-turso.mjs
+   ```
+   (The existing media files are served from `public/uploads/`, which ships with
+   the deployment. New uploads go to Vercel Blob.)
 
-## 3. Deploy
+### Deploy
 
-```bash
-vercel deploy
-```
+1. Import the GitHub repo into Vercel (or run `npx vercel`). Vercel auto-detects
+   Next.js — no `vercel.json` needed.
+2. Add a **Blob store** to the project (Storage tab) — this sets
+   `BLOB_READ_WRITE_TOKEN` automatically.
+3. Add the project **Environment Variables**: `TURSO_DATABASE_URL`,
+   `TURSO_AUTH_TOKEN`, `ADMIN_TOKEN` (Blob token is added in step 2).
+4. Deploy. The feed, story pages, uploads (`/api/posts`), and admin moderation
+   all run server-side against Turso + Blob.
 
-Set `DATABASE_URL` and `BLOB_READ_WRITE_TOKEN` in the Vercel project's
-environment variables. That's it.
+> The GitHub Pages export above is independent — it still builds from the local
+> `data/mikula.db` and ignores the Turso/Blob env, so you can keep both if you
+> want.
 
 ## Logo
 

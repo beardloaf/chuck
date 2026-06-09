@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const MAX_POSTS = 200;
 
 export default async function HomePage() {
-  const rows = db
+  const rows = await db
     .select()
     .from(schema.posts)
     .where(eq(schema.posts.status, "approved"))
@@ -23,7 +23,7 @@ export default async function HomePage() {
   const media =
     ids.length === 0
       ? []
-      : db
+      : await db
           .select()
           .from(schema.mediaItems)
           .where(inArray(schema.mediaItems.postId, ids))

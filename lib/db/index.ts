@@ -1,13 +1,19 @@
-import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import fs from "node:fs";
 import path from "node:path";
 import * as schema from "./schema";
 
 /**
- * Process-wide singleton DB handle. better-sqlite3 is synchronous and
- * inexpensive to open, but we don't want to re-open it on every import in
- * dev mode (where modules can be evaluated repeatedly).
+ * libSQL (SQLite-compatible) database handle.
+ *
+ * - Production (Vercel): a hosted Turso database, via TURSO_DATABASE_URL +
+ *   TURSO_AUTH_TOKEN. Serverless filesystems are read-only/ephemeral, so the DB
+ *   can't live on disk there.
+ * - Local dev and the static export build: the on-disk SQLite file. Same SQLite
+ *   schema either way, so nothing else in the app changes.
+ *
+ * Note: the libSQL driver is async — every query must be awaited.
  */
 declare global {
   // eslint-disable-next-line no-var
@@ -15,14 +21,19 @@ declare global {
 }
 
 function createDb() {
-  const dataDir = path.join(process.cwd(), "data");
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  const url = process.env.TURSO_DATABASE_URL ?? "file:./data/mikula.db";
+
+  // Ensure the directory exists for the local file database.
+  if (url.startsWith("file:")) {
+    const dir = path.dirname(url.slice("file:".length));
+    if (dir && !fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   }
-  const sqlite = new Database(path.join(dataDir, "mikula.db"));
-  sqlite.pragma("journal_mode = WAL");
-  sqlite.pragma("foreign_keys = ON");
-  return drizzle(sqlite, { schema });
+
+  const client = createClient({
+    url,
+    authToken: process.env.TURSO_AUTH_TOKEN,
+  });
+  return drizzle(client, { schema });
 }
 
 export const db = globalThis.__mikulaDb ?? createDb();

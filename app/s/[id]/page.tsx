@@ -22,7 +22,7 @@ export default async function StoryPage({
 }) {
   const { id } = await params;
 
-  const [row] = db
+  const [row] = await db
     .select()
     .from(schema.posts)
     .where(and(eq(schema.posts.id, id), eq(schema.posts.status, "approved")))
@@ -31,7 +31,7 @@ export default async function StoryPage({
 
   if (!row) notFound();
 
-  const media = db
+  const media = await db
     .select()
     .from(schema.mediaItems)
     .where(inArray(schema.mediaItems.postId, [row.id]))
@@ -39,7 +39,7 @@ export default async function StoryPage({
   media.sort((a, b) => a.position - b.position);
 
   // ---- timeline: all approved posts (id, date, first image, title) ----
-  const allPosts = db
+  const allPosts = await db
     .select()
     .from(schema.posts)
     .where(eq(schema.posts.status, "approved"))
@@ -49,7 +49,7 @@ export default async function StoryPage({
   const allMedia =
     allIds.length === 0
       ? []
-      : db
+      : await db
           .select()
           .from(schema.mediaItems)
           .where(inArray(schema.mediaItems.postId, allIds))

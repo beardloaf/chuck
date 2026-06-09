@@ -25,7 +25,7 @@ export async function POST(
     return Response.json({ error: "Bad request" }, { status: 400 });
   }
 
-  const result = db
+  const result = await db
     .update(schema.posts)
     .set({ status: parsed.status, statusAt: new Date() })
     .where(eq(schema.posts.id, id))

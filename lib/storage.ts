@@ -89,22 +89,25 @@ export async function saveUpload(file: File): Promise<SavedFile> {
   const now = new Date();
   const yyyy = String(now.getUTCFullYear());
   const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const dir = path.join(UPLOAD_ROOT, yyyy, mm);
-  await fs.mkdir(dir, { recursive: true });
-
   const ext = EXT_FOR_MIME[mime] ?? "bin";
   const filename = `${randomUUID()}.${ext}`;
-  const absPath = path.join(dir, filename);
+  const key = `uploads/${yyyy}/${mm}/${filename}`;
 
   const buf = Buffer.from(await file.arrayBuffer());
-  await fs.writeFile(absPath, buf);
 
-  return {
-    url: `/uploads/${yyyy}/${mm}/${filename}`,
-    type,
-    mime,
-    size: file.size,
-  };
+  // Hosts with a read-only/ephemeral filesystem (Vercel) → Vercel Blob.
+  // Local dev → write under public/ so it's served at /uploads/...
+  if (process.env.BLOB_READ_WRITE_TOKEN) {
+    const { put } = await import("@vercel/blob");
+    const { url } = await put(key, buf, { access: "public", contentType: mime });
+    return { url, type, mime, size: file.size };
+  }
+
+  const dir = path.join(UPLOAD_ROOT, yyyy, mm);
+  await fs.mkdir(dir, { recursive: true });
+  await fs.writeFile(path.join(dir, filename), buf);
+
+  return { url: `/${key}`, type, mime, size: file.size };
 }
 
 export class StorageError extends Error {

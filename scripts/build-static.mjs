@@ -33,12 +33,12 @@ const PATCHES = [
     to: `export const dynamic = "force-static";
 export const dynamicParams = false;
 export async function generateStaticParams() {
-  return db
+  const rows = await db
     .select({ id: schema.posts.id })
     .from(schema.posts)
     .where(eq(schema.posts.status, "approved"))
-    .all()
-    .map((p) => ({ id: p.id }));
+    .all();
+  return rows.map((p) => ({ id: p.id }));
 }`,
   },
 ];

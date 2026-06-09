@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
 import { db, schema } from "@/lib/db";
 import { desc, eq, lt, and, inArray } from "drizzle-orm";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
@@ -118,39 +119,39 @@ export async function POST(req: Request) {
   }
 
   // New posts land as "pending" — admin approval gates them to the feed.
-  const id = await db.transaction((tx) => {
-    const [post] = tx
-      .insert(schema.posts)
-      .values({
-        author,
-        title: title || null,
-        body: body || null,
-        storyDate,
-        status: "pending",
-        statusAt: new Date(),
-      })
-      .returning({ id: schema.posts.id })
-      .all();
-
-    if (saved.length > 0) {
-      tx.insert(schema.mediaItems)
-        .values(
-          saved.map((s, i) => ({
-            postId: post.id,
-            type: s.type,
-            url: s.url,
-            mime: s.mime,
-            durationMs: s.durationMs ?? null,
-            width: s.width ?? null,
-            height: s.height ?? null,
-            waveformPeaks: s.peaks ?? null,
-            position: i,
-          })),
-        )
-        .run();
-    }
-    return post.id;
+  // Generate the id up front so the post + its media can be written atomically
+  // via batch() (more robust on Turso/serverless than an interactive tx).
+  const id = randomUUID();
+  const insertPost = db.insert(schema.posts).values({
+    id,
+    author,
+    title: title || null,
+    body: body || null,
+    storyDate,
+    status: "pending",
+    statusAt: new Date(),
   });
+
+  if (saved.length > 0) {
+    await db.batch([
+      insertPost,
+      db.insert(schema.mediaItems).values(
+        saved.map((s, i) => ({
+          postId: id,
+          type: s.type,
+          url: s.url,
+          mime: s.mime,
+          durationMs: s.durationMs ?? null,
+          width: s.width ?? null,
+          height: s.height ?? null,
+          waveformPeaks: s.peaks ?? null,
+          position: i,
+        })),
+      ),
+    ]);
+  } else {
+    await insertPost;
+  }
 
   return Response.json({ id, status: "pending" }, { status: 201 });
 }
@@ -174,7 +175,7 @@ export async function GET(req: Request) {
       )
     : eq(schema.posts.status, "approved");
 
-  const rows = db
+  const rows = await db
     .select()
     .from(schema.posts)
     .where(where)
@@ -189,7 +190,7 @@ export async function GET(req: Request) {
   const media =
     ids.length === 0
       ? []
-      : db
+      : await db
           .select()
           .from(schema.mediaItems)
           .where(inArray(schema.mediaItems.postId, ids))

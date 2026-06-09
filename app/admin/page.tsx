@@ -27,7 +27,7 @@ export default async function AdminPage({
   const sp = await searchParams;
   const filter = (sp.filter || "pending") as "pending" | "approved" | "rejected";
 
-  const rows = db
+  const rows = await db
     .select()
     .from(schema.posts)
     .where(eq(schema.posts.status, filter))
@@ -38,7 +38,7 @@ export default async function AdminPage({
   const media =
     ids.length === 0
       ? []
-      : db
+      : await db
           .select()
           .from(schema.mediaItems)
           .where(inArray(schema.mediaItems.postId, ids))
@@ -51,7 +51,7 @@ export default async function AdminPage({
   }
   for (const list of byPost.values()) list.sort((a, b) => a.position - b.position);
 
-  const counts = countByStatus();
+  const counts = await countByStatus();
 
   const items: AdminPost[] = rows.map((p) => ({
     id: p.id,
@@ -88,8 +88,8 @@ export default async function AdminPage({
   );
 }
 
-function countByStatus() {
-  const all = db.select().from(schema.posts).all();
+async function countByStatus() {
+  const all = await db.select().from(schema.posts).all();
   const counts = { pending: 0, approved: 0, rejected: 0 };
   for (const p of all) counts[p.status as keyof typeof counts]++;
   return counts;
