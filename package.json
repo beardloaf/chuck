@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:static": "node scripts/build-static.mjs",
+    "preview:static": "node scripts/preview-static.mjs",
     "start": "next start",
     "lint": "eslint",
     "db:push": "drizzle-kit push",
