@@ -837,11 +837,13 @@ p, span, li, label, input, textarea, button.body, .body {
 .intro-body em {
   font-style: italic;
 }
-/* Desktop: lead and body share the same width (aligned), negative space right. */
+/* Desktop: lead and body share the same width (aligned), negative space right.
+   The width is 42% at ≥1440px and widens toward 100% as the viewport narrows
+   (~+10% per 100px). The 100% cap keeps the card padding/margins intact. */
 @media (min-width: 768px) {
   .intro-lead,
   .intro-body {
-    max-width: 42%;
+    max-width: clamp(42%, calc(42% + (1440px - 100vw) * 0.84), 100%);
   }
 }
 
