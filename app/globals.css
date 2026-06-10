@@ -826,10 +826,10 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .intro-body {
   color: #3f3f46;
-  font-weight: 400; /* regular */
+  font-weight: 500; /* medium — more legible */
   letter-spacing: normal; /* standard tracking */
   font-size: clamp(0.88rem, 0.8rem + 0.4vw, 1.02rem);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 .intro-body p {
   margin: 0;
@@ -837,11 +837,9 @@ p, span, li, label, input, textarea, button.body, .body {
 .intro-body em {
   font-style: italic;
 }
-/* Desktop: text on the left (~60 / 40 widths) with negative space on the right. */
+/* Desktop: lead and body share the same width (aligned), negative space right. */
 @media (min-width: 768px) {
-  .intro-lead {
-    max-width: 60%;
-  }
+  .intro-lead,
   .intro-body {
     max-width: 42%;
   }
