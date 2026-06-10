@@ -27,9 +27,9 @@
   --line-strong: #3a3a3a;
 
   /* Accent — saturated natural (hunter) green, used for all active/primary states */
-  --accent: #2e7d46;
+  --accent: #385d45;
   --accent-ink: #ffffff;    /* text color on accent surfaces */
-  --accent-soft: rgba(46, 125, 70, 0.18);
+  --accent-soft: rgba(56, 93, 69, 0.18);
 
   /* Status colors (used sparingly, no gradients) */
   --danger: #ef4444;
@@ -79,9 +79,9 @@
   --line: #e4e3dd;
   --line-strong: #d2d1c9;
 
-  --accent: #2e7d46; /* same hunter green in light mode */
+  --accent: #385d45; /* same green in light mode */
   --accent-ink: #ffffff;
-  --accent-soft: rgba(46, 125, 70, 0.14);
+  --accent-soft: rgba(56, 93, 69, 0.14);
 
   --danger: #dc2626;
   --danger-soft: #fbe9e9;
@@ -790,48 +790,44 @@ p, span, li, label, input, textarea, button.body, .body {
 
 /* ----------------------------- Gallery layout --------------------------- */
 
-/* Memorial intro — eyebrow + two fluid columns, between the header and feed.
-   Side padding matches .topbar/.gallery so it lines up with the page. */
+/* Memorial intro — a light "card" on the dark page: eyebrow + lead + body
+   stacked, content on the left with negative space on the right. Inset by the
+   page margin so it lines up with the feed; rounded like the tiles. */
 .intro {
-  padding: clamp(1.5rem, 0.5rem + 3vw, 3.5rem) var(--page-x)
-    clamp(2.25rem, 1.25rem + 2.5vw, 4rem);
+  background: #d9d5ce;
+  color: #1a1a1a;
+  border-radius: var(--r-xl); /* same corner radius as the tiles */
+  margin: 0 var(--page-x) clamp(1.5rem, 1rem + 2vw, 2.75rem);
+  padding: clamp(2rem, 1.25rem + 3.5vw, 4.5rem)
+    clamp(1.75rem, 1rem + 3.5vw, 4.5rem);
 }
 .intro-eyebrow {
   font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: 0.08em;
   font-size: clamp(0.8rem, 0.72rem + 0.3vw, 0.95rem);
-  color: var(--ink);
+  color: #1a1a1a;
   margin: 0 0 clamp(1.25rem, 0.5rem + 2vw, 2.5rem);
 }
 .intro-cols {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr); /* mobile: stacked */
-  gap: 1.75rem;
-}
-@media (min-width: 768px) {
-  .intro-cols {
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* 60 / 40 */
-    gap: 1.5rem; /* 24px */
-    align-items: start;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 1rem + 1.5vw, 2.25rem);
 }
 .intro-lead {
   font-family: var(--font-display);
   font-weight: 400; /* regular */
   text-transform: none; /* override the global ALL-CAPS heading rule */
-  letter-spacing: normal; /* standard tracking (override display -0.02em) */
-  /* scales with the browser */
+  letter-spacing: normal; /* standard tracking */
   font-size: clamp(1.25rem, 0.85rem + 1.6vw, 2.15rem);
   line-height: 1.2;
-  color: var(--ink);
+  color: #1a1a1a;
   margin: 0;
-  text-wrap: balance;
 }
 .intro-body {
-  color: var(--ink); /* white */
+  color: #3f3f46;
   font-weight: 400; /* regular */
-  letter-spacing: normal; /* standard tracking (override body -0.01em) */
+  letter-spacing: normal; /* standard tracking */
   font-size: clamp(0.88rem, 0.8rem + 0.4vw, 1.02rem);
   line-height: 1.6;
 }
@@ -840,6 +836,15 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .intro-body em {
   font-style: italic;
+}
+/* Desktop: text on the left (~60 / 40 widths) with negative space on the right. */
+@media (min-width: 768px) {
+  .intro-lead {
+    max-width: 60%;
+  }
+  .intro-body {
+    max-width: 42%;
+  }
 }
 
 .gallery {
