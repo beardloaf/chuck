@@ -12,6 +12,7 @@ import {
 import { SideSheet } from "../SideSheet";
 import { Composer } from "../share/Composer";
 import { SiteNav } from "../SiteNav";
+import { Intro } from "./Intro";
 import { READ_ONLY } from "@/lib/site";
 
 /**
@@ -62,6 +63,8 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
   return (
     <>
       <SiteNav />
+
+      <Intro />
 
       <div className="gallery">
         <ControlPanel
