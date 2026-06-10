@@ -21,7 +21,7 @@ export function Intro() {
             inspiration behind 2Pac’s <em>California Love</em>. He was the first
             person to shotgun a beer and always said to never let the truth get in
             the way of a good story. Enjoy riding off into the sunset with that
-            conquistador in a golf cart. Rest in Power, poppa. 🤙
+            conquistador in a golf cart. Rest in Power, poppa. ✊
           </p>
         </div>
       </div>

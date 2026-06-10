@@ -814,19 +814,21 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .intro-lead {
   font-family: var(--font-display);
-  font-weight: 500;
+  font-weight: 400; /* regular */
   text-transform: none; /* override the global ALL-CAPS heading rule */
+  letter-spacing: normal; /* standard tracking (override display -0.02em) */
   /* scales with the browser */
-  font-size: clamp(1.55rem, 0.9rem + 2.4vw, 3rem);
-  line-height: 1.12;
-  letter-spacing: -0.02em;
+  font-size: clamp(1.25rem, 0.85rem + 1.6vw, 2.15rem);
+  line-height: 1.2;
   color: var(--ink);
   margin: 0;
   text-wrap: balance;
 }
 .intro-body {
-  color: var(--ink-2);
-  font-size: clamp(0.98rem, 0.88rem + 0.5vw, 1.18rem);
+  color: var(--ink); /* white */
+  font-weight: 400; /* regular */
+  letter-spacing: normal; /* standard tracking (override body -0.01em) */
+  font-size: clamp(0.88rem, 0.8rem + 0.4vw, 1.02rem);
   line-height: 1.6;
 }
 .intro-body p {
