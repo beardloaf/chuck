@@ -94,7 +94,7 @@ export function ControlPanel({
           }
           title={dir === "desc" ? "Newest first" : "Oldest first"}
         >
-          {dir === "desc" ? <ArrowDownIcon /> : <ArrowUpIcon />}
+          {dir === "desc" ? <SortDescIcon /> : <SortAscIcon />}
         </button>
         {!READ_ONLY && (
           <button
@@ -136,13 +136,21 @@ function CalendarIcon() {
   );
 }
 
-function ArrowDownIcon() {
+/* Descending (newest first): down arrow + bars wide→narrow. */
+function SortDescIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M9 3v11M4.5 9.5L9 14l4.5-4.5"
+        d="M3 16l4 4 4-4M7 20V4"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11 5h10M11 10h7M11 15h4"
+        stroke="currentColor"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -150,13 +158,21 @@ function ArrowDownIcon() {
   );
 }
 
-function ArrowUpIcon() {
+/* Ascending (oldest first): up arrow + bars narrow→wide. */
+function SortAscIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
       <path
-        d="M9 15V4M4.5 8.5L9 4l4.5 4.5"
+        d="M3 8l4-4 4 4M7 4v16"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M11 9h4M11 14h7M11 19h10"
+        stroke="currentColor"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

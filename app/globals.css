@@ -5,6 +5,10 @@
 /* -------------------------------------------------------------------------- */
 
 :root {
+  /* Horizontal page margin shared by the header, intro and feed (fluid — more
+     negative space on wider screens). */
+  --page-x: clamp(1.25rem, 0.5rem + 2.6vw, 3.5rem);
+
   /* Surfaces — neutral greys (true neutral, no warm/cool tint) */
   --bg: #000000;
   --bg-soft: #141414;
@@ -789,8 +793,8 @@ p, span, li, label, input, textarea, button.body, .body {
 /* Memorial intro — eyebrow + two fluid columns, between the header and feed.
    Side padding matches .topbar/.gallery so it lines up with the page. */
 .intro {
-  padding: clamp(1.5rem, 0.5rem + 3vw, 3.5rem) 0.75rem
-    clamp(1.75rem, 1rem + 2vw, 3rem);
+  padding: clamp(1.5rem, 0.5rem + 3vw, 3.5rem) var(--page-x)
+    clamp(2.25rem, 1.25rem + 2.5vw, 4rem);
 }
 .intro-eyebrow {
   font-family: var(--font-display);
@@ -807,8 +811,8 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 @media (min-width: 768px) {
   .intro-cols {
-    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
-    gap: clamp(2rem, 0.5rem + 5vw, 6rem);
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); /* 60 / 40 */
+    gap: 1.5rem; /* 24px */
     align-items: start;
   }
 }
@@ -841,7 +845,7 @@ p, span, li, label, input, textarea, button.body, .body {
 .gallery {
   display: grid;
   gap: 1.5rem; /* ~24px between tiles */
-  padding: 0 0.75rem 1.5rem; /* halved left/right page margin */
+  padding: 0 var(--page-x) clamp(2.5rem, 1.5rem + 3vw, 5rem); /* more side + bottom negative space */
   /* minmax(0, 1fr) (not 1fr) so the column can't be pushed wider than the
      viewport by a child's min-content (e.g. the nowrap "Add a memory"). */
   grid-template-columns: minmax(0, 1fr);
@@ -1096,9 +1100,9 @@ p, span, li, label, input, textarea, button.body, .body {
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* brand left, theme toggle right */
+  justify-content: center; /* centered brand (theme toggle hidden) */
   gap: 1rem;
-  padding: 1.5rem 0.75rem; /* match the halved page margin */
+  padding: clamp(1.75rem, 1rem + 2vw, 3rem) var(--page-x);
   margin-bottom: 0;
 }
 .topbar-brand {
@@ -1113,7 +1117,7 @@ p, span, li, label, input, textarea, button.body, .body {
   align-items: center;
 }
 .topbar-logo {
-  height: 2.25rem;
+  height: clamp(2.75rem, 2rem + 2.6vw, 4.5rem); /* centered + larger */
   width: auto;
   display: block;
 }

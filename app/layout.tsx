@@ -14,24 +14,15 @@ export const metadata: Metadata = {
   description: "A small home for stories.",
 };
 
-// Applies the theme before paint to avoid a flash. Uses the saved choice if
-// there is one, otherwise follows the OS (prefers-color-scheme).
-const themeInit = `try{var t=localStorage.getItem('theme');if(t!=='light'&&t!=='dark'){t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark';}document.documentElement.dataset.theme=t;}catch(e){}`;
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Dark theme only for now. The light theme + toggle are intentionally
+  // disabled (CSS and ThemeToggle component kept so they can be brought back).
   return (
-    <html
-      lang="en"
-      className={`${interTight.variable} h-full antialiased`}
-      suppressHydrationWarning
-    >
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInit }} />
-      </head>
+    <html lang="en" data-theme="dark" className={`${interTight.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <main className="flex-1 flex flex-col">{children}</main>
       </body>
