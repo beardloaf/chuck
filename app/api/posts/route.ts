@@ -130,7 +130,11 @@ export async function POST(req: Request) {
   for (let i = 0; i < blobUrls.length; i++) {
     const url = blobUrls[i];
     const type = blobTypes[i];
-    if (!/^https:\/\/[\w-]+\.blob\.vercel-storage\.com\//i.test(url)) continue;
+    // Vercel Blob public URLs are https://<store>.public.blob.vercel-storage.com/…
+    // — the host has a dotted ".public." label, so allow dots in the subdomain
+    // (the old [\w-]+ only matched a single label and rejected every real URL,
+    // silently dropping the media so posts saved with no attachments).
+    if (!/^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\//i.test(url)) continue;
     if (type !== "audio" && type !== "image" && type !== "video") continue;
     let peaks: number[] | undefined;
     if (type === "audio" && peaksRaw[i]) {

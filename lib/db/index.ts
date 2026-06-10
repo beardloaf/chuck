@@ -21,6 +21,18 @@ declare global {
 }
 
 function createDb() {
+  // On a serverless host (Vercel) the bundled SQLite file is read-only and
+  // ephemeral. Falling back to it there would silently serve a STALE snapshot
+  // (whatever was last committed) and lose every write — which looks exactly
+  // like "the database got replaced with a previous version". Refuse to start
+  // without Turso so a misconfigured deploy fails loudly instead.
+  if (process.env.VERCEL && !process.env.TURSO_DATABASE_URL) {
+    throw new Error(
+      "TURSO_DATABASE_URL is required on Vercel. Refusing to fall back to the " +
+        "bundled SQLite snapshot (it would serve stale data and drop writes).",
+    );
+  }
+
   const url = process.env.TURSO_DATABASE_URL ?? "file:./data/mikula.db";
 
   // Ensure the directory exists for the local file database.

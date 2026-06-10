@@ -6,7 +6,7 @@
 
 :root {
   /* Surfaces — neutral greys (true neutral, no warm/cool tint) */
-  --bg: #0a0a0a;
+  --bg: #000000;
   --bg-soft: #141414;
   --surface: #1a1a1a;
   --surface-2: #212121;

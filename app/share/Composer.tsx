@@ -22,8 +22,12 @@ export function Composer({
   const [recording, setRecording] = useState(false);
   const [dropActive, setDropActive] = useState(false);
   const [mediaMode, setMediaMode] = useState<"upload" | "record">("upload");
-  const [month, setMonth] = useState(""); // "01".."12"
-  const [year, setYear] = useState(""); // "YYYY"
+  // Default the story date to the current month/year (the user only changes it
+  // if the memory is from another time).
+  const [month, setMonth] = useState(() =>
+    String(new Date().getMonth() + 1).padStart(2, "0"),
+  ); // "01".."12"
+  const [year, setYear] = useState(() => String(new Date().getFullYear())); // "YYYY"
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -195,8 +199,8 @@ export function Composer({
       setSuccess(true);
       setTitle("");
       setBody("");
-      setYear("");
-      setMonth("");
+      setYear(String(new Date().getFullYear()));
+      setMonth(String(new Date().getMonth() + 1).padStart(2, "0"));
       setMediaMode("upload");
       attachments.forEach((a) => URL.revokeObjectURL(a.previewUrl));
       setAttachments([]);
