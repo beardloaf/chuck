@@ -789,8 +789,10 @@ p, span, li, label, input, textarea, button.body, .body {
 .gallery {
   display: grid;
   gap: 1.5rem; /* ~24px between tiles */
-  padding: 0 1.5rem 1.5rem;
-  grid-template-columns: 1fr; /* mobile: single column */
+  padding: 0 0.75rem 1.5rem; /* halved left/right page margin */
+  /* minmax(0, 1fr) (not 1fr) so the column can't be pushed wider than the
+     viewport by a child's min-content (e.g. the nowrap "Add a memory"). */
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-flow: dense;
 }
 @media (min-width: 640px) {
@@ -840,6 +842,9 @@ p, span, li, label, input, textarea, button.body, .body {
   border-radius: var(--r-xl);
   padding: 0.5rem;
   display: grid;
+  /* Clamp the single column to the panel width (minmax(0,…), not the implicit
+     auto) so a child's content can't push the column wider than the panel. */
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: 1fr; /* every row (4 filters + actions) is equal height */
   gap: 0.4rem;
   min-width: 0;
@@ -1021,6 +1026,19 @@ p, span, li, label, input, textarea, button.body, .body {
   height: 100%;
   padding: 0 1rem;
 }
+/* Ultra-narrow phones (≤359px, e.g. iPhone SE 1st gen): the toggle + sort icon
+   + full "Add a memory" label can't share one row, so drop to the plus icon
+   only rather than clip the label. Modern iPhones (≥360px) keep the full CTA. */
+@media (max-width: 359px) {
+  .cp-add {
+    flex: 0 0 auto;
+    aspect-ratio: 1;
+    padding: 0;
+  }
+  .cp-add span {
+    display: none;
+  }
+}
 
 /* Top nav bar */
 .topbar {
@@ -1028,7 +1046,7 @@ p, span, li, label, input, textarea, button.body, .body {
   align-items: center;
   justify-content: space-between; /* brand left, theme toggle right */
   gap: 1rem;
-  padding: 1.5rem;
+  padding: 1.5rem 0.75rem; /* match the halved page margin */
   margin-bottom: 0;
 }
 .topbar-brand {
@@ -1230,6 +1248,10 @@ p, span, li, label, input, textarea, button.body, .body {
     rgba(0, 0, 0, 0) 100%
   );
   padding-top: 3.5rem;
+  /* Extend 1px past the bottom so sub-pixel rounding can't leave a hairline
+     of bare image below the gradient (seen on mobile). */
+  bottom: -1px;
+  padding-bottom: calc(1rem + 1px);
 }
 
 /* Headline: a single line, medium weight, tracked out slightly, truncated. */

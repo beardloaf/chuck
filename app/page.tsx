@@ -4,8 +4,8 @@ import { Feed } from "./feed/Feed";
 import type { FeedPost } from "./feed/Tile";
 import { asset, displayUrl } from "@/lib/site";
 
-// Dynamic for the normal server build. The static GitHub Pages build swaps this
-// to "force-static" (see scripts/build-static.mjs) so it prerenders at build.
+// Rendered at request time against the live database (Turso in production), so
+// newly approved memories show up without a rebuild.
 export const dynamic = "force-dynamic";
 
 const MAX_POSTS = 200;

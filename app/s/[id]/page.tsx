@@ -11,8 +11,8 @@ import { MediaCarousel } from "./MediaCarousel";
 import { DownloadAll, type DownloadItem } from "./DownloadAll";
 import { asset, displayUrl } from "@/lib/site";
 
-// Dynamic for the normal server build. The static GitHub Pages build swaps this
-// to "force-static" and injects generateStaticParams (see build-static.mjs).
+// Rendered at request time so a story is viewable as soon as it's approved,
+// without a rebuild.
 export const dynamic = "force-dynamic";
 
 export default async function StoryPage({

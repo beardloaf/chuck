@@ -6,6 +6,7 @@ import {
   ControlPanel,
   type FilterKey,
   type SortMode,
+  type SortDir,
   type Counts,
 } from "./ControlPanel";
 import { SideSheet } from "../SideSheet";
@@ -14,14 +15,14 @@ import { SiteNav } from "../SiteNav";
 import { READ_ONLY } from "@/lib/site";
 
 /**
- * Client feed: holds filter (content type), sort mode (recent / story date /
- * random), and the add-story sheet. The control module is the first grid
- * cell so tiles flow around it, Azuki-style.
+ * Client feed: holds filter (content type), sort mode (recent / story date),
+ * sort direction (desc / asc), and the add-story sheet. The control module is
+ * the first grid cell so tiles flow around it, Azuki-style.
  */
 export function Feed({ posts }: { posts: FeedPost[] }) {
   const [filter, setFilter] = useState<FilterKey>("all");
   const [mode, setMode] = useState<SortMode>("recent");
-  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 1e9));
+  const [dir, setDir] = useState<SortDir>("desc");
   const [open, setOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
 
@@ -51,21 +52,12 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
 
   const displayed = useMemo(() => {
     const list = posts.filter((p) => matchesFilter(p, filter));
-    if (mode === "recent") {
-      return [...list].sort((a, b) => b.createdAt - a.createdAt);
-    }
-    if (mode === "story") {
-      return [...list].sort(
-        (a, b) => (b.storyDate ?? b.createdAt) - (a.storyDate ?? a.createdAt),
-      );
-    }
-    return shuffle(list, seed);
-  }, [posts, filter, mode, seed]);
-
-  function handleMode(m: SortMode) {
-    if (m === "random") setSeed(Math.floor(Math.random() * 1e9));
-    setMode(m);
-  }
+    const key = (p: FeedPost) =>
+      mode === "story" ? (p.storyDate ?? p.createdAt) : p.createdAt;
+    return [...list].sort((a, b) =>
+      dir === "desc" ? key(b) - key(a) : key(a) - key(b),
+    );
+  }, [posts, filter, mode, dir]);
 
   return (
     <>
@@ -76,8 +68,10 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
           counts={counts}
           filter={filter}
           mode={mode}
+          dir={dir}
           onFilter={setFilter}
-          onMode={handleMode}
+          onMode={setMode}
+          onToggleDir={() => setDir((d) => (d === "desc" ? "asc" : "desc"))}
           onAdd={() => setOpen(true)}
         />
         {displayed.map((p) => (
@@ -119,25 +113,4 @@ function matchesFilter(p: FeedPost, f: FilterKey): boolean {
     default:
       return true;
   }
-}
-
-/** Seeded shuffle so the order is stable across re-renders until reshuffled. */
-function shuffle<T>(arr: T[], seed: number): T[] {
-  const rand = mulberry32(seed);
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(rand() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function mulberry32(a: number): () => number {
-  return function () {
-    a |= 0;
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
 }

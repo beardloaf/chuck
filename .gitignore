@@ -42,10 +42,10 @@ yarn-error.log*
 next-env.d.ts
 
 # mikula — runtime data
-# The approved-content DB and its uploads ARE committed so the GitHub Pages
-# workflow can build the static site. Transient SQLite sidecar files are not.
-/data/*.db-wal
-/data/*.db-shm
+# The live database is Turso (hosted), NOT this file — never commit a local DB
+# snapshot, so a push can't overwrite the live approved/pending/rejected state.
+# (public/uploads stays tracked so Vercel serves the originally-uploaded media.)
+/data
 
 # claude code — personal/local config
 .claude/settings.local.json

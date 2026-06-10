@@ -1,13 +1,11 @@
 /**
- * Build-time site configuration shared by server and client components.
- *
- * These are driven by env vars that are only set for the static GitHub Pages
- * build (see scripts/build-static.mjs). For the normal dev/server build they
- * are unset, so the full dynamic app (uploads, admin, request-time data) is
- * unchanged.
+ * Site configuration shared by server and client components, driven by optional
+ * env vars. In the normal dev/Vercel build they are unset, so the full dynamic
+ * app (uploads, admin, request-time data) is active. They exist to support an
+ * optional read-only or sub-path deployment.
  */
 
-/** Path prefix when hosted under a sub-path, e.g. "/chuck" on GitHub Pages. */
+/** Path prefix when hosted under a sub-path (unset = served at the root). */
 export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 /** When true, hide write affordances (the site is a published, read-only view). */

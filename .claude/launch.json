@@ -6,12 +6,6 @@
       "runtimeExecutable": "/Users/mikula/Chuck/.claude/run-next.sh",
       "runtimeArgs": ["dev", "--webpack", "-p", "3737"],
       "port": 3737
-    },
-    {
-      "name": "pages-static",
-      "runtimeExecutable": "node",
-      "runtimeArgs": ["scripts/preview-static.mjs"],
-      "port": 4530
     }
   ]
 }

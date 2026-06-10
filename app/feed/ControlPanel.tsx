@@ -3,7 +3,8 @@
 import { READ_ONLY } from "@/lib/site";
 
 export type FilterKey = "all" | "words" | "photo" | "video";
-export type SortMode = "recent" | "story" | "random";
+export type SortMode = "recent" | "story";
+export type SortDir = "desc" | "asc";
 
 export interface Counts {
   all: number;
@@ -23,15 +24,19 @@ export function ControlPanel({
   counts,
   filter,
   mode,
+  dir,
   onFilter,
   onMode,
+  onToggleDir,
   onAdd,
 }: {
   counts: Counts;
   filter: FilterKey;
   mode: SortMode;
+  dir: SortDir;
   onFilter: (f: FilterKey) => void;
   onMode: (m: SortMode) => void;
+  onToggleDir: () => void;
   onAdd: () => void;
 }) {
   return (
@@ -56,9 +61,7 @@ export function ControlPanel({
           className="cp-toggle"
           role="group"
           aria-label="Sort order"
-          data-active={
-            mode === "recent" ? "recent" : mode === "story" ? "story" : "none"
-          }
+          data-active={mode === "story" ? "story" : "recent"}
         >
           <span className="cp-toggle-thumb" aria-hidden="true" />
           <button
@@ -85,12 +88,13 @@ export function ControlPanel({
         <button
           type="button"
           className="cp-icon"
-          data-on={mode === "random"}
-          onClick={() => onMode("random")}
-          aria-label="Shuffle"
-          title="Shuffle"
+          onClick={onToggleDir}
+          aria-label={
+            dir === "desc" ? "Newest first — switch to oldest first" : "Oldest first — switch to newest first"
+          }
+          title={dir === "desc" ? "Newest first" : "Oldest first"}
         >
-          <ShuffleIcon />
+          {dir === "desc" ? <ArrowDownIcon /> : <ArrowUpIcon />}
         </button>
         {!READ_ONLY && (
           <button
@@ -132,20 +136,27 @@ function CalendarIcon() {
   );
 }
 
-function ShuffleIcon() {
+function ArrowDownIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
       <path
-        d="M2.5 4.5h2.2c1 0 1.6.5 2.3 1.4l3.5 6.2c.6 1 1.3 1.4 2.3 1.4h2.2M2.5 13.5h2.2c1 0 1.6-.5 2.3-1.4M11 5.9c.6-.9 1.3-1.4 2.3-1.4h2.2"
+        d="M9 3v11M4.5 9.5L9 14l4.5-4.5"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+    </svg>
+  );
+}
+
+function ArrowUpIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
       <path
-        d="M13.5 2.5L15.5 4.5L13.5 6.5M13.5 11.5L15.5 13.5L13.5 15.5"
+        d="M9 15V4M4.5 8.5L9 4l4.5 4.5"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
