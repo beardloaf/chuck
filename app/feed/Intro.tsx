@@ -20,8 +20,9 @@ export function Intro() {
             Elton John’s many lovers, tickling a few keys, he was also the
             inspiration behind 2Pac’s <em>California Love</em>. He was the first
             person to shotgun a beer and always said to never let the truth get in
-            the way of a good story. Enjoy riding off into the sunset with that
-            conquistador in a golf cart. Rest in Power, poppa. ✊
+            the way of a good story. Now picture him riding off into the sunset
+            with a conquistador in a golf cart. That is all. Rest in Power,
+            poppa. ✊
           </p>
         </div>
       </div>
