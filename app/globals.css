@@ -1854,11 +1854,6 @@ p, span, li, label, input, textarea, button.body, .body {
   backdrop-filter: blur(8px);
   color: #fff;
 }
-.tile-chip-new {
-  background: var(--accent);
-  color: var(--accent-ink);
-  box-shadow: var(--shadow-sm);
-}
 
 /* Compact audio player used inside tiles */
 .audio-player-compact {

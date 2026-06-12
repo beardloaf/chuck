@@ -9,12 +9,37 @@ const interTight = Inter_Tight({
   display: "swap",
 });
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.chuckmikula.com";
+const OG_DESCRIPTION = "In memory of Charles “Chuck” Mikula.";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "Charles Mikula — In Memories",
     template: "Charles Mikula — %s",
   },
-  description: "In memory of Charles “Chuck” Mikula.",
+  description: OG_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    siteName: "Charles Mikula",
+    title: "Charles Mikula — In Memories",
+    description: OG_DESCRIPTION,
+    url: "/",
+    images: [
+      {
+        url: "/og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Charles “Chuck” Mikula",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Charles Mikula — In Memories",
+    description: OG_DESCRIPTION,
+    images: ["/og.jpg"],
+  },
 };
 
 export default function RootLayout({

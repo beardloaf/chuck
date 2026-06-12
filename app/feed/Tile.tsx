@@ -85,13 +85,10 @@ function tileHeadline(post: FeedPost): string {
 export function Tile({
   post,
   pending,
-  isNew,
 }: {
   post: FeedPost;
   /** A just-submitted memory awaiting review: shown to its author, not a link. */
   pending?: boolean;
-  /** Added since the viewer's last visit → shows a "new" chip. */
-  isNew?: boolean;
 }) {
   const images = post.media.filter((m) => m.type === "image");
   const primary = post.media[0];
@@ -169,9 +166,6 @@ export function Tile({
       id={`post-${post.id}`}
     >
       {pending && <span className="tile-status-chip tile-chip-pending">In review</span>}
-      {isNew && !pending && (
-        <span className="tile-status-chip tile-chip-new">New</span>
-      )}
       {/* Media background */}
         {isImageLed &&
           (isMultiImage ? (

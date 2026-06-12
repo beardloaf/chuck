@@ -33,8 +33,6 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
   // A just-submitted memory, previewed at the top of the feed for its author
   // (client-only) while it awaits review.
   const [pending, setPending] = useState<FeedPost | null>(null);
-  // IDs of posts that are new since this visitor's last visit (yellow chip).
-  const [newIds, setNewIds] = useState<Set<string>>(() => new Set());
 
   // Release the preview's object URLs when it's replaced or the feed unmounts.
   useEffect(() => {
@@ -57,36 +55,6 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
-
-  // The site always defaults to "by story date". It only flips to "recent" for
-  // a returning visitor who actually has new content since their last visit —
-  // those new posts also get a "new" chip. First visits (and returning visits
-  // with nothing new) keep the story-date default. localStorage is client-only,
-  // so this runs after mount.
-  useEffect(() => {
-    const KEY = "mikula.lastVisit";
-    let last = 0;
-    try {
-      last = Number(localStorage.getItem(KEY)) || 0;
-    } catch {
-      /* ignore */
-    }
-    // Always record this visit for next time.
-    try {
-      localStorage.setItem(KEY, String(Date.now()));
-    } catch {
-      /* ignore */
-    }
-    if (last <= 0) return; // first visit → keep the story-date default
-    const fresh = posts.filter((p) => p.createdAt > last).map((p) => p.id);
-    if (fresh.length === 0) return; // nothing new → keep the story-date default
-    // New content → surface it: switch to recent and flag the new posts.
-    const t = setTimeout(() => {
-      setMode("recent");
-      setNewIds(new Set(fresh));
-    }, 0);
-    return () => clearTimeout(t);
-  }, [posts]);
 
   // The timeline button jumps to the most recent story (which carries the
   // timeline). Posts arrive newest-first, but find the max to be safe.
@@ -158,7 +126,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
         />
         {pending && <Tile key={pending.id} post={pending} pending />}
         {displayed.map((p) => (
-          <Tile key={p.id} post={p} isNew={newIds.has(p.id)} />
+          <Tile key={p.id} post={p} />
         ))}
         {displayed.length === 0 && (
           <p className="feed-empty">
