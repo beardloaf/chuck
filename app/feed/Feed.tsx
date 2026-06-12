@@ -58,9 +58,11 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Returning visitors: default to "recent" and flag posts added since their
-  // last visit. First-time visitors keep the story-date default and see no
-  // "new" chips. Runs once on mount (localStorage is client-only).
+  // The site always defaults to "by story date". It only flips to "recent" for
+  // a returning visitor who actually has new content since their last visit —
+  // those new posts also get a "new" chip. First visits (and returning visits
+  // with nothing new) keep the story-date default. localStorage is client-only,
+  // so this runs after mount.
   useEffect(() => {
     const KEY = "mikula.lastVisit";
     let last = 0;
@@ -69,25 +71,21 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
     } catch {
       /* ignore */
     }
-    if (last > 0) {
-      const fresh = posts.filter((p) => p.createdAt > last).map((p) => p.id);
-      // Defer state writes one tick (no synchronous setState in an effect body).
-      const t = setTimeout(() => {
-        setMode("recent");
-        setNewIds(new Set(fresh));
-      }, 0);
-      try {
-        localStorage.setItem(KEY, String(Date.now()));
-      } catch {
-        /* ignore */
-      }
-      return () => clearTimeout(t);
-    }
+    // Always record this visit for next time.
     try {
       localStorage.setItem(KEY, String(Date.now()));
     } catch {
       /* ignore */
     }
+    if (last <= 0) return; // first visit → keep the story-date default
+    const fresh = posts.filter((p) => p.createdAt > last).map((p) => p.id);
+    if (fresh.length === 0) return; // nothing new → keep the story-date default
+    // New content → surface it: switch to recent and flag the new posts.
+    const t = setTimeout(() => {
+      setMode("recent");
+      setNewIds(new Set(fresh));
+    }, 0);
+    return () => clearTimeout(t);
   }, [posts]);
 
   // The timeline button jumps to the most recent story (which carries the

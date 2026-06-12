@@ -248,7 +248,7 @@ p, span, li, label, input, textarea, button.body, .body {
   padding: 0.65rem 1.15rem;
   color: var(--ink);
   background: transparent;
-  border: 1px solid var(--line-strong);
+  border: 2px solid var(--line-strong);
   border-radius: var(--r-pill);
   cursor: pointer;
   display: inline-flex;
@@ -1993,14 +1993,14 @@ p, span, li, label, input, textarea, button.body, .body {
   text-decoration: none;
   padding: 0.5rem 0.75rem;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line-strong);
   margin-bottom: 2.5rem;
   align-self: flex-start;
   transition: color 140ms ease, border-color 140ms ease;
 }
 .story-back:hover {
   color: var(--ink);
-  border-color: var(--line-strong);
+  border-color: var(--ink-3);
 }
 
 /* Text-only is a single column, centered on the page and a touch narrower, with
@@ -2301,7 +2301,7 @@ p, span, li, label, input, textarea, button.body, .body {
   text-transform: uppercase;
   padding: 0.5rem 0.85rem;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line);
+  border: 2px solid var(--line-strong);
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
@@ -2309,7 +2309,7 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .story-download:hover:not(:disabled) {
   color: var(--ink);
-  border-color: var(--line-strong);
+  border-color: var(--ink-3);
 }
 .story-download:disabled {
   opacity: 0.6;
