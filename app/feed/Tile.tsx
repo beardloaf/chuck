@@ -82,7 +82,14 @@ function tileHeadline(post: FeedPost): string {
   return "";
 }
 
-export function Tile({ post }: { post: FeedPost }) {
+export function Tile({
+  post,
+  pending,
+}: {
+  post: FeedPost;
+  /** A just-submitted memory awaiting review: shown to its author, not a link. */
+  pending?: boolean;
+}) {
   const images = post.media.filter((m) => m.type === "image");
   const primary = post.media[0];
   const isImageLed = primary?.type === "image";
@@ -152,18 +159,14 @@ export function Tile({ post }: { post: FeedPost }) {
     setIdx(to);
   }
 
-  return (
-    <Link
-      href={`/s/${post.id}`}
-      className="tile-link"
-      aria-label={`Open story by ${post.author}`}
+  const article = (
+    <article
+      ref={articleRef}
+      className={`tile ${onMedia ? "tile-media" : variant} ${isMultiImage ? "tile-has-carousel" : ""}`}
+      id={`post-${post.id}`}
     >
-      <article
-        ref={articleRef}
-        className={`tile ${onMedia ? "tile-media" : variant} ${isMultiImage ? "tile-has-carousel" : ""}`}
-        id={`post-${post.id}`}
-      >
-        {/* Media background */}
+      {pending && <span className="tile-pending-badge">In review</span>}
+      {/* Media background */}
         {isImageLed &&
           (isMultiImage ? (
             <div className="carousel">
@@ -271,7 +274,24 @@ export function Tile({ post }: { post: FeedPost }) {
         {post.media.length > 1 && !isMultiImage && (
           <span className="tile-badge tile-badge-count">+{post.media.length - 1}</span>
         )}
-      </article>
+    </article>
+  );
+
+  if (pending) {
+    return (
+      <div className="tile-link tile-pending" aria-label="Your memory — in review">
+        {article}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={`/s/${post.id}`}
+      className="tile-link"
+      aria-label={`Open story by ${post.author}`}
+    >
+      {article}
     </Link>
   );
 }

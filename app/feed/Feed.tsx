@@ -22,12 +22,25 @@ import { READ_ONLY } from "@/lib/site";
  */
 export function Feed({ posts }: { posts: FeedPost[] }) {
   const [filter, setFilter] = useState<FilterKey>("all");
-  const [mode, setMode] = useState<SortMode>("recent");
+  // Default ordering is by the memory's own date, not its upload time.
+  const [mode, setMode] = useState<SortMode>("story");
   const [dir, setDir] = useState<SortDir>("desc");
   const [open, setOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // A just-submitted memory, previewed at the top of the feed for its author
+  // (client-only) while it awaits review.
+  const [pending, setPending] = useState<FeedPost | null>(null);
+
+  // Release the preview's object URLs when it's replaced or the feed unmounts.
+  useEffect(() => {
+    return () => {
+      pending?.media.forEach((m) => {
+        if (m.url.startsWith("blob:")) URL.revokeObjectURL(m.url);
+      });
+    };
+  }, [pending]);
 
   // Floating "add a memory" button reveals once the page is scrolled.
   useEffect(() => {
@@ -104,6 +117,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
           onToggleDir={() => setDir((d) => (d === "desc" ? "asc" : "desc"))}
           onAdd={() => setOpen(true)}
         />
+        {pending && <Tile key={pending.id} post={pending} pending />}
         {displayed.map((p) => (
           <Tile key={p.id} post={p} />
         ))}
@@ -139,7 +153,11 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
 
           <SideSheet open={open} onClose={requestClose} title="Add a memory">
             <Composer
-              onSubmitted={() => setDirty(false)}
+              onSubmitted={(post) => {
+                setDirty(false);
+                setPending(post);
+                setMode("recent"); // their new memory sorts to the top
+              }}
               onDirtyChange={setDirty}
             />
           </SideSheet>

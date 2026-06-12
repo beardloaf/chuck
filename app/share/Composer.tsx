@@ -5,6 +5,7 @@ import { Recorder } from "./Recorder";
 import { MediaPicker } from "./MediaPicker";
 import { filesToAttachments } from "./mediaFiles";
 import type { Attachment } from "./types";
+import type { FeedPost } from "@/app/feed/Tile";
 
 const STORAGE_KEY = "mikula.composer.v1";
 
@@ -12,7 +13,7 @@ export function Composer({
   onSubmitted,
   onDirtyChange,
 }: {
-  onSubmitted?: () => void;
+  onSubmitted?: (pending: FeedPost) => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [author, setAuthor] = useState("");
@@ -228,9 +229,30 @@ export function Composer({
       setYear(String(new Date().getFullYear()));
       setMonth(String(new Date().getMonth() + 1).padStart(2, "0"));
       setMediaMode("upload");
-      attachments.forEach((a) => URL.revokeObjectURL(a.previewUrl));
+      // Hand the just-submitted memory to the feed as a local "pending" preview
+      // (shown only to this author until it's approved). Ownership of the object
+      // URLs transfers to the feed, so we don't revoke them here.
+      const monthNum = /^\d{2}$/.test(month) ? Number(month) : 1;
+      const pendingPost: FeedPost = {
+        id: created?.id ?? `pending-${Date.now()}`,
+        author: author.trim() || "Anonymous",
+        title: title.trim() || null,
+        body: body.trim() || null,
+        createdAt: Date.now(),
+        storyDate: /^\d{4}$/.test(yr) ? Date.UTC(Number(yr), monthNum - 1, 1) : null,
+        media: attachments.map((a) => ({
+          id: a.id,
+          type: a.type,
+          url: a.previewUrl,
+          mime: a.file.type || "",
+          durationMs: a.durationMs ?? null,
+          width: a.width ?? null,
+          height: a.height ?? null,
+          peaks: a.peaks ?? null,
+        })),
+      };
       setAttachments([]);
-      onSubmitted?.();
+      onSubmitted?.(pendingPost);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong.";
       setError(msg);

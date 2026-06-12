@@ -193,20 +193,14 @@ function InfoIcon() {
   );
 }
 
-/** A little timeline: a rail with nodes and entries. */
+/** A horizontal timeline: a baseline with milestone nodes and a "current" ring. */
 function TimelineIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-      <path d="M5 3.2v11.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-      <circle cx="5" cy="5" r="1.5" fill="currentColor" />
-      <circle cx="5" cy="9" r="1.5" fill="currentColor" />
-      <circle cx="5" cy="13" r="1.5" fill="currentColor" />
-      <path
-        d="M9 5h5M9 9h4M9 13h5"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-      />
+      <path d="M2.5 9h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="5" cy="9" r="1.6" fill="currentColor" />
+      <circle cx="13" cy="9" r="1.6" fill="currentColor" />
+      <circle cx="9" cy="9" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
     </svg>
   );
 }
