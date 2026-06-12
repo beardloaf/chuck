@@ -308,33 +308,6 @@ export function Composer({
         maxLength={20_000}
       />
 
-      {attachments.length > 0 && (
-        <ul className="space-y-2">
-          {attachments.map((a) => (
-            <li key={a.id} className="attachment-chip">
-              <AttachmentPreview a={a} />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-ink truncate">
-                  {labelFor(a)}
-                </p>
-                <p className="text-xs text-ink-3 truncate">
-                  {a.file.name}
-                  {a.durationMs ? ` · ${formatDuration(a.durationMs)}` : ""}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="chip-remove"
-                onClick={() => removeAttachment(a.id)}
-                aria-label={`Remove ${a.type}`}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
       {showDate && (
           <label className="flex items-center justify-between gap-3 px-1">
             <span className="text-sm text-ink-2">When was this?</span>
@@ -401,18 +374,42 @@ export function Composer({
           </div>
 
           {mediaMode === "upload" ? (
-            <MediaPicker onAdd={addAttachments} />
+            /* Thumbnails of what's been added (× to remove), with the "+" add
+               tile filling the next free cell — three per row. */
+            <div className="media-grid">
+              {attachments.map((a) => (
+                <MediaThumb
+                  key={a.id}
+                  a={a}
+                  onRemove={() => removeAttachment(a.id)}
+                />
+              ))}
+              <MediaPicker onAdd={addAttachments} />
+            </div>
           ) : (
-            <button
-              type="button"
-              className="action-tile"
-              onClick={() => setRecording(true)}
-            >
-              <span className="tile-icon" aria-hidden>
-                <RecIcon />
-              </span>
-              <span className="tile-label">Start recording</span>
-            </button>
+            <>
+              {attachments.length > 0 && (
+                <div className="media-grid">
+                  {attachments.map((a) => (
+                    <MediaThumb
+                      key={a.id}
+                      a={a}
+                      onRemove={() => removeAttachment(a.id)}
+                    />
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                className="action-tile"
+                onClick={() => setRecording(true)}
+              >
+                <span className="tile-icon" aria-hidden>
+                  <RecIcon />
+                </span>
+                <span className="tile-label">Start recording</span>
+              </button>
+            </>
           )}
         </div>
       )}
@@ -455,41 +452,43 @@ export function Composer({
   );
 }
 
-function labelFor(a: Attachment): string {
-  const isRecorded = a.source === "recorded";
-  if (a.type === "audio") return isRecorded ? "Voice memo" : "Audio";
-  if (a.type === "video") return isRecorded ? "Video clip" : "Video";
-  return "Photo";
-}
-
-function AttachmentPreview({ a }: { a: Attachment }) {
-  if (a.type === "image") {
-    return (
-      <span className="chip-thumb">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={a.previewUrl} alt="" className="w-full h-full object-cover" />
-      </span>
-    );
-  }
-  if (a.type === "video") {
-    return (
-      <span className="chip-thumb">
-        <video src={a.previewUrl} className="w-full h-full object-cover" muted playsInline />
-      </span>
-    );
-  }
+/** One added item in the media grid: a cover thumbnail with an "×" to remove. */
+function MediaThumb({ a, onRemove }: { a: Attachment; onRemove: () => void }) {
   return (
-    <span className="chip-thumb">
-      <MicIcon />
-    </span>
+    <div className="media-grid-item">
+      {a.type === "image" ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img src={a.previewUrl} alt="" />
+      ) : a.type === "video" ? (
+        <video src={a.previewUrl} muted playsInline preload="metadata" />
+      ) : (
+        <span className="media-grid-audio" aria-hidden>
+          <MicIcon />
+        </span>
+      )}
+      <button
+        type="button"
+        className="media-grid-remove"
+        onClick={onRemove}
+        aria-label={`Remove ${a.type}`}
+      >
+        <XIcon />
+      </button>
+    </div>
   );
 }
 
-function formatDuration(ms: number): string {
-  const totalSec = Math.round(ms / 1000);
-  const m = Math.floor(totalSec / 60);
-  const s = totalSec % 60;
-  return `${m}:${s.toString().padStart(2, "0")}`;
+function XIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+      <path
+        d="M3.5 3.5l7 7M10.5 3.5l-7 7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
 }
 
 // Year options — current year back to 1962.

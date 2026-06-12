@@ -65,7 +65,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
     <>
       <SiteNav infoOpen={aboutOpen} onInfo={() => setAboutOpen((o) => !o)} />
 
-      <Intro open={aboutOpen} onClose={() => setAboutOpen(false)} />
+      <Intro open={aboutOpen} />
 
       <div className="gallery">
         <ControlPanel

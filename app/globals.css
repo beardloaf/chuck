@@ -559,6 +559,88 @@ p, span, li, label, input, textarea, button.body, .body {
   letter-spacing: 0;
 }
 
+/* Added-media grid in the composer — three square cells per row. Thumbnails
+   carry an "×" to remove; the "+" add tile fills the next free cell. */
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+.media-grid-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--r-md);
+  overflow: hidden;
+  background: var(--bg-soft);
+  border: 1px solid var(--line);
+}
+.media-grid-item img,
+.media-grid-item video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.media-grid-audio {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--ink-2);
+}
+.media-grid-remove {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.6rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: background 140ms ease;
+}
+.media-grid-remove:hover {
+  background: rgba(0, 0, 0, 0.82);
+}
+/* The "+" add tile shares the grid cell's square footprint. */
+.media-grid-add {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  border: 1px dashed var(--line-strong);
+  background: var(--bg-soft);
+  color: var(--ink-3);
+  cursor: pointer;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+.media-grid-add:hover {
+  border-color: var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+}
+.media-grid-add[data-active="true"] {
+  border-style: solid;
+  border-color: var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+}
+.media-grid-add-icon {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+}
+.media-grid-add-icon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Attachment chip                                                            */
 /* -------------------------------------------------------------------------- */
@@ -809,7 +891,6 @@ p, span, li, label, input, textarea, button.body, .body {
    stacked, content on the left with negative space on the right. Inset by the
    page margin so it lines up with the feed; rounded like the tiles. */
 .intro {
-  position: relative; /* anchor for the collapse button */
   background: #d9d5ce;
   color: #1a1a1a;
   border-radius: var(--r-xl); /* same corner radius as the tiles */
@@ -825,25 +906,6 @@ p, span, li, label, input, textarea, button.body, .body {
 .intro-wrap[data-open="true"] .intro {
   opacity: 1;
   transform: none;
-}
-/* Minus-in-a-circle to collapse the card from its top-right corner. */
-.intro-collapse {
-  position: absolute;
-  top: clamp(0.9rem, 0.5rem + 1.5vw, 1.75rem);
-  right: clamp(0.9rem, 0.5rem + 1.5vw, 1.75rem);
-  width: 2rem;
-  height: 2rem;
-  display: grid;
-  place-items: center;
-  border-radius: var(--r-pill);
-  border: 1px solid rgba(0, 0, 0, 0.2);
-  background: rgba(0, 0, 0, 0.05);
-  color: #1a1a1a;
-  cursor: pointer;
-  transition: background 140ms ease;
-}
-.intro-collapse:hover {
-  background: rgba(0, 0, 0, 0.12);
 }
 .intro-eyebrow {
   font-family: var(--font-display);
@@ -1235,7 +1297,8 @@ p, span, li, label, input, textarea, button.body, .body {
   padding: clamp(1.75rem, 1rem + 2vw, 3rem) var(--page-x);
   margin-bottom: 0;
 }
-/* Top-left info/about button — toggles the intro card; logo stays centered. */
+/* Top-left info/about button — white icon + 2px white ring, nothing else;
+   toggles the intro card (logo stays centered). Active = 50% opacity. */
 .topbar-info {
   position: absolute;
   left: var(--page-x);
@@ -1246,21 +1309,18 @@ p, span, li, label, input, textarea, button.body, .body {
   display: grid;
   place-items: center;
   border-radius: var(--r-pill);
-  border: 1px solid var(--line-strong);
-  background: var(--surface);
-  color: var(--ink-2);
+  border: 2px solid #fff;
+  background: transparent;
+  color: #fff;
   cursor: pointer;
-  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+  transition: opacity 140ms ease;
   z-index: 5;
 }
 .topbar-info:hover {
-  color: var(--ink);
-  border-color: var(--ink-3);
+  opacity: 0.75;
 }
 .topbar-info[data-open="true"] {
-  background: var(--ink);
-  color: var(--bg);
-  border-color: var(--ink);
+  opacity: 0.5;
 }
 .topbar-brand {
   font-family: var(--font-display);
@@ -1273,11 +1333,23 @@ p, span, li, label, input, textarea, button.body, .body {
   display: inline-flex;
   align-items: center;
 }
-.topbar-logo {
-  /* All logos share a width; height is whatever the art is (taller ones make
-     the header taller and push the page down). */
+/* The logo lives in a fixed-width window. While the reel spins the window is a
+   fixed height (set inline) so nothing jumps; on landing the height animates to
+   the chosen logo's natural height, sliding the page content into place. */
+.topbar-logo-box {
+  display: block;
   width: clamp(8rem, 24vw, 11rem);
-  height: auto;
+  overflow: hidden;
+  transition: height 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.topbar-logo-box[data-spinning="true"] {
+  transition: none; /* no height animation between flashes */
+}
+.topbar-logo {
+  /* All logos share a width; object-fit keeps each one inside the window. */
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
   display: block;
 }
 .topbar-nav {
@@ -1494,19 +1566,19 @@ p, span, li, label, input, textarea, button.body, .body {
   inset: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 3rem 1.5rem 3.25rem;
   pointer-events: none;
 }
 .tile-lead-text {
   margin: 0;
-  max-width: 100%;
+  width: 100%;
   max-height: 100%;
-  text-align: center;
+  text-align: left;
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.12;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.14;
   color: var(--ink);
   overflow-wrap: break-word;
   /* initial size before useFitText refines it to the exact fit (limits flash) */

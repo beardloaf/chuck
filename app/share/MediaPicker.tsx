@@ -24,8 +24,10 @@ export function MediaPicker({ onAdd }: Props) {
   return (
     <button
       type="button"
-      className="action-tile"
+      className="media-grid-add"
       data-active={dragOver ? "true" : undefined}
+      aria-label="Add photos or videos"
+      title="Add photos or videos"
       onClick={() => inputRef.current?.click()}
       onDragEnter={(e) => {
         e.preventDefault();
@@ -42,10 +44,9 @@ export function MediaPicker({ onAdd }: Props) {
         handleFiles(e.dataTransfer.files);
       }}
     >
-      <span className="tile-icon" aria-hidden>
+      <span className="media-grid-add-icon" aria-hidden>
         <PlusIcon />
       </span>
-      <span className="tile-label">Add photos or videos</span>
       <input
         ref={inputRef}
         type="file"

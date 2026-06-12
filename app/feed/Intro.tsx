@@ -4,31 +4,13 @@
  * a body paragraph on the right.
  *
  * Collapsible: hidden by default and revealed (with a smooth height/fade) by
- * the header's info button; `onClose` (the in-card minus button or the info
- * button again) collapses it.
+ * the header's info button, which also collapses it again.
  */
-export function Intro({
-  open,
-  onClose,
-}: {
-  open?: boolean;
-  onClose?: () => void;
-}) {
+export function Intro({ open }: { open?: boolean }) {
   return (
     <div className="intro-wrap" data-open={open ? "true" : "false"}>
       <div className="intro-wrap-inner" inert={!open}>
         <section className="intro" aria-label="About Charles Mikula">
-          {onClose && (
-            <button
-              type="button"
-              className="intro-collapse"
-              onClick={onClose}
-              aria-label="Collapse about"
-              title="Collapse"
-            >
-              <MinusIcon />
-            </button>
-          )}
           <p className="intro-eyebrow">1964 — 2026</p>
           <div className="intro-cols">
             <h2 className="intro-lead">
@@ -52,13 +34,5 @@ export function Intro({
         </section>
       </div>
     </div>
-  );
-}
-
-function MinusIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M4 8h8" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-    </svg>
   );
 }
