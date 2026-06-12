@@ -195,6 +195,16 @@ export function Composer({
         }
         throw new Error(msg);
       }
+      // Fire-and-forget: transcode any uploaded video to a small H.264 MP4 on
+      // the server so we serve a lightweight file (lower bandwidth/storage fees).
+      const created = (await res.json().catch(() => null)) as {
+        id?: string;
+      } | null;
+      if (created?.id && attachments.some((a) => a.type === "video")) {
+        fetch(`/api/posts/${created.id}/compress`, { method: "POST" }).catch(
+          () => {},
+        );
+      }
       // Don't navigate — show success state. Post awaits admin approval.
       setSuccess(true);
       setTitle("");

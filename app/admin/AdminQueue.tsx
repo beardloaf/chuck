@@ -200,6 +200,12 @@ function AdminCard({ post }: { post: AdminPost }) {
         body: fd,
       });
       if (!res.ok) throw new Error("Add failed");
+      // Fire-and-forget H.264 transcode of any added video (server-side).
+      if (Array.from(fileList).some((f) => f.type.startsWith("video/"))) {
+        fetch(`/api/posts/${post.id}/compress`, { method: "POST" }).catch(
+          () => {},
+        );
+      }
       startTransition(() => router.refresh());
     } finally {
       setAdding(false);
