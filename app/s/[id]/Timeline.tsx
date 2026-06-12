@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { format } from "date-fns";
+import { formatStoryMonth } from "@/lib/date";
 
 export interface TimelineItem {
   id: string;
@@ -62,7 +62,7 @@ export function Timeline({
 
   const groups: { year: string; items: TimelineItem[] }[] = [];
   for (const it of sorted) {
-    const year = format(new Date(it.date), "yyyy");
+    const year = formatStoryMonth(it.date, "yyyy");
     const last = groups[groups.length - 1];
     if (last && last.year === year) last.items.push(it);
     else groups.push({ year, items: [it] });
@@ -84,7 +84,7 @@ export function Timeline({
                   ref={it.id === activeId ? activeRef : undefined}
                   className="timeline-thumb"
                   data-active={it.id === activeId}
-                  title={it.title ?? format(new Date(it.date), "MMM yyyy")}
+                  title={it.title ?? formatStoryMonth(it.date, "MMM yyyy")}
                   aria-current={it.id === activeId ? "true" : undefined}
                 >
                   {it.thumbUrl ? (

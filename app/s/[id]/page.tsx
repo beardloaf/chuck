@@ -4,6 +4,7 @@ import { eq, and, inArray, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
+import { formatStoryMonth } from "@/lib/date";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
 import { Timeline, type TimelineItem } from "./Timeline";
 import { EscapeBack } from "./EscapeBack";
@@ -33,7 +34,10 @@ export async function generateMetadata({
     .all();
   if (!row) return {};
   const title =
-    row.title?.trim() || format(row.storyDate ?? row.createdAt, "MMMM yyyy");
+    row.title?.trim() ||
+    (row.storyDate
+      ? formatStoryMonth(row.storyDate, "MMMM yyyy")
+      : format(row.createdAt, "MMMM yyyy"));
   return { title };
 }
 
@@ -103,7 +107,7 @@ export default async function StoryPage({
 
   // Story-dated posts are month-granular; undated posts show the full posted date.
   const dateLabel = row.storyDate
-    ? format(row.storyDate, "MMMM yyyy")
+    ? formatStoryMonth(row.storyDate, "MMMM yyyy")
     : format(row.createdAt, "MMMM d, yyyy");
   const hasMedia = media.length > 0;
   const hasBody = !!row.body?.trim();

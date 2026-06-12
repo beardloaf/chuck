@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Tile, type FeedPost } from "./Tile";
 import {
   ControlPanel,
@@ -27,6 +27,28 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
   const [open, setOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Floating "add a memory" button reveals once the page is scrolled.
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 240);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // The timeline button jumps to the most recent story (which carries the
+  // timeline). Posts arrive newest-first, but find the max to be safe.
+  const mostRecentId = useMemo(() => {
+    let id: string | null = null;
+    let newest = -Infinity;
+    for (const p of posts) {
+      if (p.createdAt > newest) {
+        newest = p.createdAt;
+        id = p.id;
+      }
+    }
+    return id;
+  }, [posts]);
 
   function requestClose() {
     if (
@@ -63,7 +85,11 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
 
   return (
     <>
-      <SiteNav infoOpen={aboutOpen} onInfo={() => setAboutOpen((o) => !o)} />
+      <SiteNav
+        infoOpen={aboutOpen}
+        onInfo={() => setAboutOpen((o) => !o)}
+        timelineHref={mostRecentId ? `/s/${mostRecentId}` : undefined}
+      />
 
       <Intro open={aboutOpen} />
 
@@ -91,14 +117,48 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
       </div>
 
       {!READ_ONLY && (
-        <SideSheet open={open} onClose={requestClose} title="Add a memory">
-          <Composer
-            onSubmitted={() => setDirty(false)}
-            onDirtyChange={setDirty}
-          />
-        </SideSheet>
+        <>
+          {/* Scroll-revealed floating add button: a "+" that expands on hover,
+              over a page-wide gradient so it pops off the feed below. */}
+          <div
+            className="fab-zone"
+            data-show={scrolled && !open ? "true" : "false"}
+            aria-hidden={!(scrolled && !open)}
+          >
+            <button
+              type="button"
+              className="fab"
+              onClick={() => setOpen(true)}
+              aria-label="Add a memory"
+              tabIndex={scrolled && !open ? 0 : -1}
+            >
+              <PlusIcon />
+              <span className="fab-label">Add a memory</span>
+            </button>
+          </div>
+
+          <SideSheet open={open} onClose={requestClose} title="Add a memory">
+            <Composer
+              onSubmitted={() => setDirty(false)}
+              onDirtyChange={setDirty}
+            />
+          </SideSheet>
+        </>
       )}
     </>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
+      <path
+        d="M10 4v12M4 10h12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 /** Band-style "Mikula" wordmarks in /public (all share a width; height varies). */
@@ -19,33 +20,38 @@ const LOGOS = [
 
 /** Fixed logo-area height (px) while the reel spins, so the page doesn't jump. */
 const CYCLE_H = 96;
-/** The reel keeps flashing logos for about this long before it lands. */
-const SPIN_MS = 1150;
+/** The reel keeps flashing for about this long before it lands (decelerating). */
+const SPIN_MS = 2400;
 
 const randomLogo = () => LOGOS[Math.floor(Math.random() * LOGOS.length)];
 
 /**
- * Site top bar — a centered "Mikula" wordmark. On each load it runs like a slot
- * machine: rapidly flashing random logos (in a fixed-height window so nothing
- * jumps), decelerating, then landing on a random one. When it lands, the box
- * resizes to that logo's natural height so the page content slides into place.
- * All client-side (after mount) → no SSR/hydration mismatch.
+ * Site top bar — a centered "Mikula" wordmark that runs like a slot machine:
+ * rapidly flashing random logos in a fixed-height window (so nothing jumps),
+ * decelerating, then slowly landing on a random one — after which the window
+ * eases to that logo's natural height so the page content glides into place.
+ * Clicking the wordmark re-runs the reel. All client-side (after mount) → no
+ * SSR/hydration mismatch.
  */
 export function SiteNav({
   infoOpen,
   onInfo,
+  timelineHref,
 }: {
   infoOpen?: boolean;
   onInfo?: () => void;
+  timelineHref?: string;
 }) {
   const [src, setSrc] = useState<string | null>(null);
   const [spinning, setSpinning] = useState(true);
   const [boxH, setBoxH] = useState(CYCLE_H);
   const boxRef = useRef<HTMLSpanElement | null>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const pathname = usePathname();
 
   // Size the box to the landed logo's natural height (at the current width) so
-  // the content below slides to its final position.
+  // the content below eases to its final position.
   const settle = useCallback(() => {
     const box = boxRef.current;
     const img = imgRef.current;
@@ -53,41 +59,50 @@ export function SiteNav({
     setBoxH(box.clientWidth * (img.naturalHeight / img.naturalWidth));
   }, []);
 
-  // The spin: preload all logos, then flash through them with a decelerating
-  // interval until SPIN_MS elapses, ending on a random pick. All state changes
-  // happen inside timers (never synchronously in the effect body).
-  useEffect(() => {
-    LOGOS.forEach((l) => {
-      const im = new window.Image();
-      im.src = l;
-    });
+  // Run the reel: reset to the fixed window, flash random logos with a delay
+  // that grows each frame (ease-out), then land on a random pick. Re-runnable.
+  const startSpin = useCallback(() => {
+    clearTimeout(timerRef.current);
+    setSpinning(true);
+    setBoxH(CYCLE_H);
     const reduced = window.matchMedia?.(
       "(prefers-reduced-motion: reduce)",
     )?.matches;
-    let timer: ReturnType<typeof setTimeout>;
     if (reduced) {
-      timer = setTimeout(() => {
+      timerRef.current = setTimeout(() => {
         setSrc(randomLogo());
         setSpinning(false);
       }, 0);
-      return () => clearTimeout(timer);
+      return;
     }
     let elapsed = 0;
     const tick = () => {
       setSrc(randomLogo());
-      // ease-out: each frame waits a touch longer than the last.
-      const delay = 55 + elapsed * 0.14;
+      const delay = 50 + elapsed * 0.2; // grows → the reel slows as it lands
       elapsed += delay;
       if (elapsed < SPIN_MS) {
-        timer = setTimeout(tick, delay);
+        timerRef.current = setTimeout(tick, delay);
       } else {
         setSrc(randomLogo());
         setSpinning(false);
       }
     };
-    timer = setTimeout(tick, 0);
-    return () => clearTimeout(timer);
+    timerRef.current = setTimeout(tick, 0);
   }, []);
+
+  // Preload all logos, then spin on mount (deferred a tick so no state is set
+  // synchronously inside the effect body).
+  useEffect(() => {
+    LOGOS.forEach((l) => {
+      const im = new window.Image();
+      im.src = l;
+    });
+    const kickoff = setTimeout(startSpin, 0);
+    return () => {
+      clearTimeout(kickoff);
+      clearTimeout(timerRef.current);
+    };
+  }, [startSpin]);
 
   // Once landed, measure → resize. The ResizeObserver fires once on observe
   // (driving the initial settle) and again on viewport resize.
@@ -105,7 +120,7 @@ export function SiteNav({
       {onInfo && (
         <button
           type="button"
-          className="topbar-info"
+          className="topbar-icon-btn topbar-info"
           onClick={onInfo}
           data-open={infoOpen ? "true" : "false"}
           aria-label="About Charles Mikula"
@@ -115,7 +130,18 @@ export function SiteNav({
           <InfoIcon />
         </button>
       )}
-      <Link href="/" className="topbar-brand" aria-label="Charles Mikula">
+      <Link
+        href="/"
+        className="topbar-brand"
+        aria-label="Charles Mikula"
+        onClick={(e) => {
+          // Already on the feed → re-run the reel instead of a no-op navigation.
+          if (pathname === "/") {
+            e.preventDefault();
+            startSpin();
+          }
+        }}
+      >
         {src ? (
           <span
             ref={boxRef}
@@ -138,16 +164,49 @@ export function SiteNav({
           "Charles Mikula"
         )}
       </Link>
+      {timelineHref && (
+        <Link
+          href={timelineHref}
+          className="topbar-icon-btn topbar-timeline"
+          aria-label="Open the timeline"
+          title="Timeline"
+        >
+          <TimelineIcon />
+        </Link>
+      )}
     </header>
   );
 }
 
+/** Just the "i" — the button already supplies the circular ring. */
 function InfoIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-      <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M9 8v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="9" cy="5.5" r="0.95" fill="currentColor" />
+      <circle cx="9" cy="4.3" r="1.15" fill="currentColor" />
+      <path
+        d="M9 7.6v6.1"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/** A little timeline: a rail with nodes and entries. */
+function TimelineIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path d="M5 3.2v11.6" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="5" cy="5" r="1.5" fill="currentColor" />
+      <circle cx="5" cy="9" r="1.5" fill="currentColor" />
+      <circle cx="5" cy="13" r="1.5" fill="currentColor" />
+      <path
+        d="M9 5h5M9 9h4M9 13h5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

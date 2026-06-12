@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { format } from "date-fns";
+import { formatStoryMonth } from "@/lib/date";
 import { TileAudio } from "./TileAudio";
 import { TileVideo } from "./TileVideo";
 
@@ -133,7 +134,7 @@ export function Tile({ post }: { post: FeedPost }) {
   // Story-dated posts are month-granular → show "MMM yyyy"; otherwise the
   // full posted date.
   const dateLabel = post.storyDate
-    ? format(new Date(post.storyDate), "MMM yyyy")
+    ? formatStoryMonth(post.storyDate, "MMM yyyy")
     : format(new Date(post.createdAt), "MMM d, yyyy");
   const audio = post.media.find((m) => m.type === "audio");
 

@@ -53,14 +53,14 @@
   --frost: rgba(255, 255, 255, 0.14);
   --frost-ink: #ffffff;
 
-  /* White active (non-filter controls): toggle, shuffle, media-mode, switch */
-  --on: var(--ink);
-  --on-ink: var(--bg);
+  /* Active state for filters + toggles (filter rows, sort toggle, sort dir) */
+  --on: #eaeaea;
+  --on-ink: #141414; /* dark text/icon on the light active surface */
 
-  /* Add button — slightly brighter than the option rows (not white) */
-  --add-bg: #2e2e2e;
-  --add-bg-hover: #383838;
-  --add-ink: var(--ink);
+  /* Add button — white pill with dark text */
+  --add-bg: #ffffff;
+  --add-bg-hover: #eaeaea;
+  --add-ink: #141414;
 }
 
 /* Light theme — flips surfaces, ink, and accent. */
@@ -956,7 +956,9 @@ p, span, li, label, input, textarea, button.body, .body {
 .gallery {
   display: grid;
   gap: 1.5rem; /* ~24px between tiles */
-  padding: 0 var(--page-x) clamp(2.5rem, 1.5rem + 3vw, 5rem); /* more side + bottom negative space */
+  /* Generous bottom space so the scroll-revealed floating button can sit on its
+     own, clear of the last tiles, when you reach the bottom. */
+  padding: 0 var(--page-x) clamp(9rem, 7rem + 6vw, 13rem);
   /* minmax(0, 1fr) (not 1fr) so the column can't be pushed wider than the
      viewport by a child's min-content (e.g. the nowrap "Add a memory"). */
   grid-template-columns: minmax(0, 1fr);
@@ -1053,8 +1055,8 @@ p, span, li, label, input, textarea, button.body, .body {
   background: var(--surface-3);
 }
 .cp-row[data-on="true"] {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--on);
+  color: var(--on-ink);
 }
 .cp-label {
   font-family: var(--font-display);
@@ -1071,7 +1073,7 @@ p, span, li, label, input, textarea, button.body, .body {
   font-variant-numeric: tabular-nums;
 }
 .cp-row[data-on="true"] .cp-count {
-  color: var(--accent-ink);
+  color: var(--on-ink);
 }
 
 /* Sort controls row — same height as a filter row above it. */
@@ -1214,6 +1216,83 @@ p, span, li, label, input, textarea, button.body, .body {
     min-width: 0;
   }
 }
+
+/* ---- Scroll-revealed floating "add a memory" button ---- */
+/* Full-width gradient anchored to the bottom of the viewport so the pill pops
+   off the feed. The zone ignores pointer events; only the button catches them. */
+.fab-zone {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  justify-content: center;
+  padding: 4.5rem 1rem clamp(1.25rem, 0.75rem + 1.5vw, 2.25rem);
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.94) 12%,
+    rgba(0, 0, 0, 0.72) 45%,
+    rgba(0, 0, 0, 0) 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.fab-zone[data-show="true"] {
+  opacity: 1;
+  transform: none;
+}
+/* White pill, black text. Just a "+" until hover/focus, then it widens to the
+   full label. */
+.fab {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 3.25rem;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: #ffffff;
+  color: #111111;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.fab:hover {
+  transform: translateY(-1px);
+}
+.fab svg {
+  flex-shrink: 0;
+}
+.fab-label {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  text-transform: uppercase;
+  transition: max-width 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 200ms ease, margin-left 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.fab:hover .fab-label,
+.fab:focus-visible .fab-label {
+  max-width: 14rem;
+  opacity: 1;
+  margin-left: 0.5rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .fab-zone {
+    transition: opacity 200ms ease;
+    transform: none;
+  }
+}
+
 /* ---- Upload progress + processing indicators (composer + admin) ---- */
 .upload-status {
   display: flex;
@@ -1297,11 +1376,11 @@ p, span, li, label, input, textarea, button.body, .body {
   padding: clamp(1.75rem, 1rem + 2vw, 3rem) var(--page-x);
   margin-bottom: 0;
 }
-/* Top-left info/about button — white icon + 2px white ring, nothing else;
-   toggles the intro card (logo stays centered). Active = 50% opacity. */
-.topbar-info {
+/* Corner icon buttons — white icon + 2px white ring, nothing else. Info sits
+   top-left (toggles the about card), timeline top-right (jumps to the most
+   recent story). The logo stays centered between them. */
+.topbar-icon-btn {
   position: absolute;
-  left: var(--page-x);
   top: 50%;
   transform: translateY(-50%);
   width: 2.4rem;
@@ -1313,14 +1392,21 @@ p, span, li, label, input, textarea, button.body, .body {
   background: transparent;
   color: #fff;
   cursor: pointer;
+  text-decoration: none;
   transition: opacity 140ms ease;
   z-index: 5;
 }
-.topbar-info:hover {
+.topbar-icon-btn:hover {
   opacity: 0.75;
+}
+.topbar-info {
+  left: var(--page-x);
 }
 .topbar-info[data-open="true"] {
   opacity: 0.5;
+}
+.topbar-timeline {
+  right: var(--page-x);
 }
 .topbar-brand {
   font-family: var(--font-display);
@@ -1340,10 +1426,8 @@ p, span, li, label, input, textarea, button.body, .body {
   display: block;
   width: clamp(8rem, 24vw, 11rem);
   overflow: hidden;
-  transition: height 520ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.topbar-logo-box[data-spinning="true"] {
-  transition: none; /* no height animation between flashes */
+  /* Slow, luxurious settle so the page content glides into its final place. */
+  transition: height 820ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .topbar-logo {
   /* All logos share a width; object-fit keeps each one inside the window. */
@@ -1819,37 +1903,6 @@ p, span, li, label, input, textarea, button.body, .body {
     border-radius: 0;
     border: 0;
   }
-}
-
-/* -------------------------------------------------------------------------- */
-/*  Floating action button (FAB)                                               */
-/* -------------------------------------------------------------------------- */
-
-.fab {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  z-index: 30;
-  padding: 0.9rem 1.3rem;
-  border-radius: var(--r-pill);
-  background: var(--ink);
-  color: var(--bg);
-  border: 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 0.8rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  box-shadow: var(--shadow-lg);
-  transition: opacity 140ms ease, transform 140ms ease;
-}
-.fab:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
 }
 
 /* -------------------------------------------------------------------------- */
