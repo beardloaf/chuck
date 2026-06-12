@@ -9,6 +9,7 @@ export interface TimelineItem {
   id: string;
   date: number; // ms — story date or created date
   thumbUrl: string | null;
+  videoUrl: string | null;
   title: string | null;
 }
 
@@ -89,6 +90,14 @@ export function Timeline({
                   {it.thumbUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={it.thumbUrl} alt="" loading="lazy" />
+                  ) : it.videoUrl ? (
+                    <video
+                      src={it.videoUrl}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      tabIndex={-1}
+                    />
                   ) : (
                     <span className="timeline-thumb-blank" aria-hidden>
                       T

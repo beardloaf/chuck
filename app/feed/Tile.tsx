@@ -103,6 +103,11 @@ export function Tile({ post }: { post: FeedPost }) {
   const next = useCallback(() => {
     setIdx((i) => (i + 1) % images.length);
   }, [images.length]);
+  function go(delta: number, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIdx((i) => (i + delta + images.length) % images.length);
+  }
   function jump(to: number, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -135,6 +140,22 @@ export function Tile({ post }: { post: FeedPost }) {
                   data-active={i === idx}
                 />
               ))}
+              <button
+                type="button"
+                className="carousel-caret carousel-prev"
+                onClick={(e) => go(-1, e)}
+                aria-label="Previous image"
+              >
+                <CaretLeft />
+              </button>
+              <button
+                type="button"
+                className="carousel-caret carousel-next"
+                onClick={(e) => go(1, e)}
+                aria-label="Next image"
+              >
+                <CaretRight />
+              </button>
             </div>
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -202,6 +223,21 @@ export function Tile({ post }: { post: FeedPost }) {
         )}
       </article>
     </Link>
+  );
+}
+
+function CaretLeft() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function CaretRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

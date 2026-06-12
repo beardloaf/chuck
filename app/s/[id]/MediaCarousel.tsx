@@ -35,6 +35,9 @@ export function MediaCarousel({ media }: { media: CarouselMedia[] }) {
   const next = useCallback(() => {
     setIndex((i) => (i + 1) % count);
   }, [count]);
+  const prev = useCallback(() => {
+    setIndex((i) => (i - 1 + count) % count);
+  }, [count]);
 
   return (
     <div
@@ -58,34 +61,67 @@ export function MediaCarousel({ media }: { media: CarouselMedia[] }) {
         ))}
       </div>
 
-      <div className="carousel-dots" role="tablist" aria-label="Choose media">
-        {media.map((m, i) => (
-          <button
-            key={m.id}
-            type="button"
-            className="carousel-dot"
-            data-active={i === index ? "true" : undefined}
-            aria-label={`Show media ${i + 1} of ${count}`}
-            aria-selected={i === index}
-            role="tab"
-            onClick={() => setIndex(i)}
-          >
-            {i === index &&
-              (autoAdvance ? (
-                <span
-                  // Remounting on each slide restarts the fill animation cleanly.
-                  key={index}
-                  className="carousel-dot-fill"
-                  style={{ animationDuration: `${SLIDE_MS}ms` }}
-                  onAnimationEnd={next}
-                />
-              ) : (
-                <span className="carousel-dot-fill carousel-dot-fill--static" />
-              ))}
-          </button>
-        ))}
+      <div className="carousel-controls">
+        <button
+          type="button"
+          className="carousel-arrow"
+          onClick={prev}
+          aria-label="Previous media"
+        >
+          <ChevronLeft />
+        </button>
+        <div className="carousel-dots" role="tablist" aria-label="Choose media">
+          {media.map((m, i) => (
+            <button
+              key={m.id}
+              type="button"
+              className="carousel-dot"
+              data-active={i === index ? "true" : undefined}
+              aria-label={`Show media ${i + 1} of ${count}`}
+              aria-selected={i === index}
+              role="tab"
+              onClick={() => setIndex(i)}
+            >
+              {i === index &&
+                (autoAdvance ? (
+                  <span
+                    // Remounting on each slide restarts the fill animation cleanly.
+                    key={index}
+                    className="carousel-dot-fill"
+                    style={{ animationDuration: `${SLIDE_MS}ms` }}
+                    onAnimationEnd={next}
+                  />
+                ) : (
+                  <span className="carousel-dot-fill carousel-dot-fill--static" />
+                ))}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="carousel-arrow"
+          onClick={next}
+          aria-label="Next media"
+        >
+          <ChevronRight />
+        </button>
       </div>
     </div>
+  );
+}
+
+function ChevronLeft() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function ChevronRight() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

@@ -104,9 +104,7 @@ export function ControlPanel({
             aria-label="Add a memory"
           >
             <PlusIcon />
-            <span>
-              <span className="cp-add-pre">Add a </span>Memory
-            </span>
+            <span>Add a memory</span>
           </button>
         )}
       </div>

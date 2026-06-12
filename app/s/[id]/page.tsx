@@ -56,15 +56,20 @@ export default async function StoryPage({
           .where(inArray(schema.mediaItems.postId, allIds))
           .all();
   const firstImageByPost = new Map<string, string>();
+  const firstVideoByPost = new Map<string, string>();
   for (const m of allMedia) {
     if (m.type === "image" && !firstImageByPost.has(m.postId)) {
       firstImageByPost.set(m.postId, asset(displayUrl(m.url, "image")));
+    }
+    if (m.type === "video" && !firstVideoByPost.has(m.postId)) {
+      firstVideoByPost.set(m.postId, asset(displayUrl(m.url, "video")));
     }
   }
   const timeline: TimelineItem[] = allPosts.map((p) => ({
     id: p.id,
     date: (p.storyDate ?? p.createdAt).getTime(),
     thumbUrl: firstImageByPost.get(p.id) ?? null,
+    videoUrl: firstVideoByPost.get(p.id) ?? null,
     title: p.title,
   }));
 
@@ -146,9 +151,8 @@ export default async function StoryPage({
         /* Media + story text: same top bar (back left, download right) so the
            buttons sit in the same place as the media-only view, then columns. */
         <>
-          <div className="story-topbar">
+          <div className="story-topbar story-topbar-split">
             {backLink}
-            <span aria-hidden />
             <DownloadAll items={downloadItems} />
           </div>
           <div
