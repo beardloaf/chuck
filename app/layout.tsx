@@ -9,8 +9,8 @@ const interTight = Inter_Tight({
   display: "swap",
 });
 
-// Canonical domain (the site also serves at charlesmikula.com).
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chuckmikula.com";
+// Canonical domain (the site also serves at chuckmikula.com).
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://charlesmikula.com";
 const OG_DESCRIPTION = "In memory of Charles “Chuck” Mikula.";
 
 export const metadata: Metadata = {
