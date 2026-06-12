@@ -26,10 +26,11 @@
   --line: #282828;
   --line-strong: #3a3a3a;
 
-  /* Accent — saturated natural (hunter) green, used for all active/primary states */
-  --accent: #385d45;
-  --accent-ink: #ffffff;    /* text color on accent surfaces */
-  --accent-soft: rgba(56, 93, 69, 0.18);
+  /* Accent — electric yellow, used for all primary/accent states (buttons,
+     progress, new-post chip). Black ink reads on it. */
+  --accent: #ffe800;
+  --accent-ink: #0a0a0a;    /* text/icon color on accent surfaces */
+  --accent-soft: rgba(255, 232, 0, 0.16);
 
   /* Status colors (used sparingly, no gradients) */
   --danger: #ef4444;
@@ -54,14 +55,17 @@
   --frost-ink: #ffffff;
 
   /* Active state for filters + toggles (filter rows, sort toggle, sort dir) —
-     a clear mid grey, distinct from the white "add" button. */
-  --on: #b0b0b0;
+     white, distinct from the electric-yellow add button. */
+  --on: #ffffff;
   --on-ink: #141414; /* dark text/icon on the active surface */
 
-  /* Add button — white pill with dark text */
-  --add-bg: #ffffff;
-  --add-bg-hover: #eaeaea;
-  --add-ink: #141414;
+  /* Add button — electric yellow with black text (the primary action color) */
+  --add-bg: var(--accent);
+  --add-bg-hover: #f5de00;
+  --add-ink: var(--accent-ink);
+
+  /* Empty space below the feed where the floating button docks (and centers). */
+  --fab-dock: clamp(9rem, 7rem + 6vw, 13rem);
 }
 
 /* Light theme — flips surfaces, ink, and accent. */
@@ -80,9 +84,9 @@
   --line: #e4e3dd;
   --line-strong: #d2d1c9;
 
-  --accent: #385d45; /* same green in light mode */
-  --accent-ink: #ffffff;
-  --accent-soft: rgba(56, 93, 69, 0.14);
+  --accent: #ffe800; /* same electric yellow in light mode */
+  --accent-ink: #0a0a0a;
+  --accent-soft: rgba(255, 232, 0, 0.16);
 
   --danger: #dc2626;
   --danger-soft: #fbe9e9;
@@ -958,8 +962,9 @@ p, span, li, label, input, textarea, button.body, .body {
   display: grid;
   gap: 1.5rem; /* ~24px between tiles */
   /* Generous bottom space so the scroll-revealed floating button can sit on its
-     own, clear of the last tiles, when you reach the bottom. */
-  padding: 0 var(--page-x) clamp(9rem, 7rem + 6vw, 13rem);
+     own, clear of the last tiles, when you reach the bottom. Matches --fab-dock
+     so the button centers exactly in this space once docked. */
+  padding: 0 var(--page-x) var(--fab-dock);
   /* minmax(0, 1fr) (not 1fr) so the column can't be pushed wider than the
      viewport by a child's min-content (e.g. the nowrap "Add a memory"). */
   grid-template-columns: minmax(0, 1fr);
@@ -971,7 +976,7 @@ p, span, li, label, input, textarea, button.body, .body {
 @media (min-width: 1024px) {
   .gallery { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (min-width: 1440px) {
+@media (min-width: 1600px) {
   .gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
@@ -1222,17 +1227,29 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 
 /* ---- Scroll-revealed floating "add a memory" button ---- */
-/* Full-width gradient anchored to the bottom of the viewport so the pill pops
-   off the feed. The zone ignores pointer events; only the button catches them. */
+/* The zone spans the bottom dock space. While scrolling, the button floats at
+   the bottom over a gradient (a fadeable ::before). When you reach the bottom,
+   the gradient fades out and the button centers in the empty dock space. */
 .fab-zone {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
   z-index: 40;
+  height: var(--fab-dock);
   display: flex;
   justify-content: center;
-  padding: 4.5rem 1rem clamp(1.25rem, 0.75rem + 1.5vw, 2.25rem);
+  align-items: flex-end;
+  padding: 0 1rem clamp(1.25rem, 0.75rem + 1.5vw, 2.25rem);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 300ms ease, transform 300ms ease;
+}
+.fab-zone::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   background: linear-gradient(
     to top,
     rgba(0, 0, 0, 0.94) 12%,
@@ -1240,13 +1257,20 @@ p, span, li, label, input, textarea, button.body, .body {
     rgba(0, 0, 0, 0) 100%
   );
   pointer-events: none;
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity 300ms ease, transform 300ms ease;
+  opacity: 1;
+  transition: opacity 320ms ease;
 }
 .fab-zone[data-show="true"] {
   opacity: 1;
   transform: none;
+}
+/* Docked at the bottom of the page: no gradient, button centered in the space. */
+.fab-zone[data-docked="true"] {
+  align-items: center;
+  padding-bottom: 0;
+}
+.fab-zone[data-docked="true"]::before {
+  opacity: 0;
 }
 /* White pill, black text. Just a "+" until hover/focus, then it widens to the
    full label. */
@@ -1802,51 +1826,38 @@ p, span, li, label, input, textarea, button.body, .body {
   right: 0.65rem;
 }
 
-/* A just-submitted memory, shown only to its author while it awaits review.
-   Not a link; marked with a pulsing "in review" badge and a soft accent ring. */
+/* A just-submitted memory shown only to its author while it awaits review —
+   not a link. */
 .tile-pending {
   cursor: default;
 }
-.tile-pending .tile {
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-.tile-pending-badge {
+
+/* Status chips ("In review" / "New") sit in the top-right corner, like the
+   video duration badge. */
+.tile-status-chip {
   position: absolute;
   top: 0.65rem;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 0.65rem;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.28rem 0.7rem;
+  padding: 0.24rem 0.6rem;
   border-radius: var(--r-pill);
-  background: var(--accent);
-  color: var(--accent-ink);
   font-family: var(--font-display);
   font-size: 0.66rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   z-index: 4;
+}
+.tile-chip-pending {
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  color: #fff;
+}
+.tile-chip-new {
+  background: var(--accent);
+  color: var(--accent-ink);
   box-shadow: var(--shadow-sm);
-}
-.tile-pending-badge::before {
-  content: "";
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: 50%;
-  background: currentColor;
-  animation: pending-pulse 1.4s ease-in-out infinite;
-}
-@keyframes pending-pulse {
-  0%,
-  100% {
-    opacity: 0.4;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 /* Compact audio player used inside tiles */
@@ -2233,29 +2244,31 @@ p, span, li, label, input, textarea, button.body, .body {
   letter-spacing: 0.16em; /* tracked-out date label */
   margin-bottom: 0.85rem;
 }
+/* Title: matches the feed's text-only lead — large, regular weight (not a bold
+   headline), tight tracking. */
 .story-heading {
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.25rem, 1.5rem + 3vw, 3.5rem);
+  font-weight: 400;
+  letter-spacing: -0.01em;
   text-transform: none; /* sentence case, not the global h1 uppercase */
   color: var(--ink);
-  line-height: 1.02;
-  margin-bottom: 0.5rem;
+  line-height: 1.14;
+  margin-bottom: 0.6rem;
 }
-/* Submitter byline: same size as the headline, lighter grey, regular weight. */
+/* Submitter byline: large, lighter grey, regular weight. */
 .story-author-big {
   font-family: var(--font-display);
-  font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+  font-size: clamp(1.9rem, 1.25rem + 2.6vw, 3rem);
   font-weight: 400;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
   color: var(--ink-3);
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.9rem;
 }
 .story-body {
-  font-size: clamp(1.05rem, 1.6vw, 1.25rem);
-  line-height: 1.65;
+  font-size: clamp(1.2rem, 1rem + 1.3vw, 1.45rem);
+  line-height: 1.6;
   color: var(--ink);
   letter-spacing: -0.005em;
   white-space: pre-wrap;

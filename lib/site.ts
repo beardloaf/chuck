@@ -37,3 +37,14 @@ export function displayUrl(
   const base = url.replace(/\.[^./]+$/, "");
   return `/uploads/_c${base.slice("/uploads".length)}.${ext}`;
 }
+
+/**
+ * Map a (possibly compressed) media URL back to the original high-resolution
+ * file for downloads. Compressed videos are stored as `<original>.c.mp4` right
+ * next to the original, so stripping that suffix yields the original URL.
+ * Everything else (images, audio, older `/compressed/<uuid>.mp4` videos whose
+ * originals are gone) is returned unchanged.
+ */
+export function originalUrl(url: string): string {
+  return /\.c\.mp4(\?|$)/i.test(url) ? url.replace(/\.c\.mp4(?=\?|$)/i, "") : url;
+}

@@ -29,9 +29,12 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
   const [dirty, setDirty] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [atBottom, setAtBottom] = useState(false);
   // A just-submitted memory, previewed at the top of the feed for its author
   // (client-only) while it awaits review.
   const [pending, setPending] = useState<FeedPost | null>(null);
+  // IDs of posts that are new since this visitor's last visit (yellow chip).
+  const [newIds, setNewIds] = useState<Set<string>>(() => new Set());
 
   // Release the preview's object URLs when it's replaced or the feed unmounts.
   useEffect(() => {
@@ -42,12 +45,50 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
     };
   }, [pending]);
 
-  // Floating "add a memory" button reveals once the page is scrolled.
+  // Floating button: reveal after scrolling; dock (centered, no gradient) once
+  // the page is scrolled all the way to the bottom dock space.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 240);
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolled(y > 240);
+      const doc = document.documentElement;
+      setAtBottom(doc.scrollHeight - (y + window.innerHeight) <= 8);
+    };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Returning visitors: default to "recent" and flag posts added since their
+  // last visit. First-time visitors keep the story-date default and see no
+  // "new" chips. Runs once on mount (localStorage is client-only).
+  useEffect(() => {
+    const KEY = "mikula.lastVisit";
+    let last = 0;
+    try {
+      last = Number(localStorage.getItem(KEY)) || 0;
+    } catch {
+      /* ignore */
+    }
+    if (last > 0) {
+      const fresh = posts.filter((p) => p.createdAt > last).map((p) => p.id);
+      // Defer state writes one tick (no synchronous setState in an effect body).
+      const t = setTimeout(() => {
+        setMode("recent");
+        setNewIds(new Set(fresh));
+      }, 0);
+      try {
+        localStorage.setItem(KEY, String(Date.now()));
+      } catch {
+        /* ignore */
+      }
+      return () => clearTimeout(t);
+    }
+    try {
+      localStorage.setItem(KEY, String(Date.now()));
+    } catch {
+      /* ignore */
+    }
+  }, [posts]);
 
   // The timeline button jumps to the most recent story (which carries the
   // timeline). Posts arrive newest-first, but find the max to be safe.
@@ -119,7 +160,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
         />
         {pending && <Tile key={pending.id} post={pending} pending />}
         {displayed.map((p) => (
-          <Tile key={p.id} post={p} />
+          <Tile key={p.id} post={p} isNew={newIds.has(p.id)} />
         ))}
         {displayed.length === 0 && (
           <p className="feed-empty">
@@ -137,6 +178,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
           <div
             className="fab-zone"
             data-show={scrolled && !open ? "true" : "false"}
+            data-docked={atBottom ? "true" : "false"}
             aria-hidden={!(scrolled && !open)}
           >
             <button

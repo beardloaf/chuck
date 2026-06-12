@@ -193,14 +193,19 @@ function InfoIcon() {
   );
 }
 
-/** A horizontal timeline: a baseline with milestone nodes and a "current" ring. */
+/** Three connected nodes — O—O—O — a simple timeline/journey mark. */
 function TimelineIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-      <path d="M2.5 9h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="5" cy="9" r="1.6" fill="currentColor" />
-      <circle cx="13" cy="9" r="1.6" fill="currentColor" />
-      <circle cx="9" cy="9" r="2.2" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    <svg width="20" height="20" viewBox="0 0 26 10" fill="none" aria-hidden>
+      <circle cx="4" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="13" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="22" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M6.6 5h3.8M15.6 5h3.8"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
     </svg>
   );
 }

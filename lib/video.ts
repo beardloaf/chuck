@@ -12,9 +12,11 @@ import { randomUUID } from "node:crypto";
 
 const BLOB_HOST = /^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\//i;
 
-/** A media URL we've already transcoded — skip to stay idempotent. */
+/** A media URL we've already transcoded — skip to stay idempotent. The current
+ * scheme stores the compressed file next to the original as `<original>.c.mp4`;
+ * older videos used a `/compressed/<uuid>.mp4` path. */
 export function isCompressedVideo(url: string): boolean {
-  return url.includes("/compressed/");
+  return url.includes("/compressed/") || /\.c\.mp4(?:\?|$)/i.test(url);
 }
 
 export function isBlobUrl(url: string): boolean {
@@ -24,7 +26,9 @@ export function isBlobUrl(url: string): boolean {
 /**
  * Download a video, transcode it to a web-friendly H.264 MP4 (long edge capped
  * at 1280px, faststart, AAC audio) with the bundled ffmpeg binary, upload the
- * result to Vercel Blob under `compressed/…`, and return its URL.
+ * result to Vercel Blob right next to the original as `<original>.c.mp4` (so the
+ * original is kept for high-res download and the compressed can be derived from
+ * it either way), and return its URL.
  *
  * Returns null on any failure so the caller can leave the original in place.
  * Runs on Node (Vercel Fluid Compute) and locally. The `ffmpeg-static` binary
@@ -92,7 +96,16 @@ export async function transcodeVideoToH264(
     if (r.status !== 0) return null;
     const out = readFileSync(outPath);
     const { put } = await import("@vercel/blob");
-    const { url } = await put(`compressed/${randomUUID()}.mp4`, out, {
+    // Store the compressed file next to the original: same pathname + ".c.mp4".
+    // The original is kept untouched, so the download can recover it by simply
+    // stripping the suffix. Fall back to a random path if the URL can't parse.
+    let key: string;
+    try {
+      key = new URL(srcUrl).pathname.replace(/^\/+/, "") + ".c.mp4";
+    } catch {
+      key = `compressed/${randomUUID()}.mp4`;
+    }
+    const { url } = await put(key, out, {
       access: "public",
       contentType: "video/mp4",
       addRandomSuffix: false,

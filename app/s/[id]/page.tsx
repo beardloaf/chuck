@@ -12,7 +12,7 @@ import { ScrollLock } from "./ScrollLock";
 import { MediaCarousel } from "./MediaCarousel";
 import { StoryMediaArea } from "./StoryMediaArea";
 import { DownloadAll, type DownloadItem } from "./DownloadAll";
-import { asset, displayUrl } from "@/lib/site";
+import { asset, displayUrl, originalUrl } from "@/lib/site";
 
 // Rendered at request time so a story is viewable as soon as it's approved,
 // without a rebuild.
@@ -101,9 +101,12 @@ export default async function StoryPage({
   // Neighbours for swipe navigation (same order as the default feed / timeline:
   // newest first). Swipe right → previous (newer), swipe left → next (older).
   const curIdx = allPosts.findIndex((p) => p.id === row.id);
-  const prevId = curIdx > 0 ? allPosts[curIdx - 1].id : null;
+  const len = allPosts.length;
+  // Wrap around at the ends so navigation cycles (matches the keyboard arrows).
+  const prevId =
+    len > 1 && curIdx >= 0 ? allPosts[(curIdx - 1 + len) % len].id : null;
   const nextId =
-    curIdx >= 0 && curIdx < allPosts.length - 1 ? allPosts[curIdx + 1].id : null;
+    len > 1 && curIdx >= 0 ? allPosts[(curIdx + 1) % len].id : null;
 
   // Story-dated posts are month-granular; undated posts show the full posted date.
   const dateLabel = row.storyDate
@@ -114,11 +117,15 @@ export default async function StoryPage({
   const heading = row.title?.trim() || dateLabel;
 
   // Filenames for the "download all" action: a slug of the memory plus an index.
+  // Videos download the original high-res file, not the compressed display copy.
   const baseName = slugify(row.title?.trim() || row.author || dateLabel);
-  const downloadItems: DownloadItem[] = media.map((m, i) => ({
-    url: asset(m.url),
-    filename: `${baseName}-${i + 1}.${extFromUrl(m.url)}`,
-  }));
+  const downloadItems: DownloadItem[] = media.map((m, i) => {
+    const dl = originalUrl(m.url);
+    return {
+      url: asset(dl),
+      filename: `${baseName}-${i + 1}.${extFromUrl(dl)}`,
+    };
+  });
 
   const backLink = (
     <Link href="/" className="story-back" aria-label="Back to the feed">

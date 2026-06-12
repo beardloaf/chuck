@@ -51,16 +51,13 @@ export async function POST(
       for (const m of targets) {
         const result = await transcodeVideoToH264(m.url);
         if (!result) continue;
+        // Point display at the compressed file. Keep the original blob in place
+        // (it's `<compressed>` minus the ".c.mp4" suffix) so people can still
+        // download the full-resolution version.
         await db
           .update(schema.mediaItems)
           .set({ url: result.url, mime: "video/mp4" })
           .where(eq(schema.mediaItems.id, m.id));
-        try {
-          const { del } = await import("@vercel/blob");
-          await del(m.url);
-        } catch {
-          /* best-effort cleanup of the original */
-        }
       }
     });
   }

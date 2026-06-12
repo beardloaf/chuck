@@ -45,14 +45,17 @@ export function Timeline({
     [items],
   );
 
-  // Left/right arrows step through the timeline (left = newer, right = older).
+  // Left/right arrows step through the timeline (left = newer, right = older),
+  // wrapping around: right at the end → start, left at the start → end.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const len = sorted.length;
+      if (len < 2) return;
       const idx = sorted.findIndex((s) => s.id === activeId);
       if (idx === -1) return;
-      const nextIdx = e.key === "ArrowLeft" ? idx - 1 : idx + 1;
-      if (nextIdx < 0 || nextIdx >= sorted.length) return;
+      const nextIdx =
+        e.key === "ArrowLeft" ? (idx - 1 + len) % len : (idx + 1) % len;
       e.preventDefault();
       router.push(`/s/${sorted[nextIdx].id}`);
     }
