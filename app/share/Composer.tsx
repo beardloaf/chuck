@@ -31,6 +31,9 @@ export function Composer({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [phase, setPhase] = useState<"idle" | "uploading" | "saving">("idle");
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
+  const [submittedVideo, setSubmittedVideo] = useState(false);
 
   useEffect(() => {
     try {
@@ -155,16 +158,26 @@ export function Composer({
       }
       // On Vercel, upload media straight to Blob (handles large videos that
       // would exceed the function body limit). Locally, post the files inline.
+      const hadVideo = attachments.some((a) => a.type === "video");
       const useBlob =
         process.env.NEXT_PUBLIC_BLOB_UPLOAD === "1" && attachments.length > 0;
       if (useBlob) {
+        setPhase("uploading");
+        setUploadPct(0);
         const { upload } = await import("@vercel/blob/client");
-        for (const a of attachments) {
+        for (let i = 0; i < attachments.length; i++) {
+          const a = attachments[i];
           const safeName = a.file.name.replace(/[^\w.-]/g, "_") || "upload";
           const blob = await upload(`uploads/${Date.now()}-${safeName}`, a.file, {
             access: "public",
             handleUploadUrl: "/api/blob/upload",
             contentType: a.file.type || undefined,
+            onUploadProgress: (ev) => {
+              // overall progress across all attachments (0–100)
+              const overall =
+                ((i + ev.percentage / 100) / attachments.length) * 100;
+              setUploadPct(Math.min(100, Math.round(overall)));
+            },
           });
           fd.append("mediaUrl[]", blob.url);
           fd.append("mediaType[]", a.type);
@@ -174,6 +187,7 @@ export function Composer({
           fd.append("height", a.height != null ? String(a.height) : "");
           fd.append("peaks", a.peaks ? JSON.stringify(a.peaks) : "");
         }
+        setUploadPct(100);
       } else {
         for (const a of attachments) {
           fd.append("media[]", a.file, a.file.name);
@@ -184,6 +198,7 @@ export function Composer({
         }
       }
 
+      setPhase("saving");
       const res = await fetch("/api/posts", { method: "POST", body: fd });
       if (!res.ok) {
         const text = await res.text();
@@ -200,12 +215,13 @@ export function Composer({
       const created = (await res.json().catch(() => null)) as {
         id?: string;
       } | null;
-      if (created?.id && attachments.some((a) => a.type === "video")) {
+      if (created?.id && hadVideo) {
         fetch(`/api/posts/${created.id}/compress`, { method: "POST" }).catch(
           () => {},
         );
       }
       // Don't navigate — show success state. Post awaits admin approval.
+      setSubmittedVideo(hadVideo);
       setSuccess(true);
       setTitle("");
       setBody("");
@@ -220,6 +236,8 @@ export function Composer({
       setError(msg);
     } finally {
       setSubmitting(false);
+      setPhase("idle");
+      setUploadPct(null);
     }
   }
 
@@ -231,6 +249,12 @@ export function Composer({
           Your story is in the queue. It'll appear in the feed once it's been
           looked over.
         </p>
+        {submittedVideo && (
+          <p className="text-xs text-ink-3 leading-relaxed mt-2">
+            Your video is being optimized for fast playback in the background —
+            nothing more to do.
+          </p>
+        )}
         <button
           type="button"
           className="btn-ghost mt-5"
@@ -399,14 +423,34 @@ export function Composer({
         </p>
       )}
 
-      <div className="flex items-center justify-between gap-4 pt-2">
-        <p className="composer-note">
-          Posts go through a quick review before appearing in the feed.
-        </p>
-        <button type="submit" className="btn-primary" disabled={!canSubmit}>
-          {submitting ? "Submitting…" : "Submit"}
-        </button>
-      </div>
+      {submitting ? (
+        <div className="upload-status pt-2" aria-live="polite">
+          <div
+            className={`upload-bar ${phase === "uploading" ? "" : "is-indeterminate"}`}
+          >
+            {phase === "uploading" && (
+              <div
+                className="upload-bar-fill"
+                style={{ width: `${uploadPct ?? 0}%` }}
+              />
+            )}
+          </div>
+          <span className="upload-label">
+            {phase === "uploading"
+              ? `Uploading media… ${uploadPct ?? 0}%`
+              : "Saving your memory…"}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-4 pt-2">
+          <p className="composer-note">
+            Posts go through a quick review before appearing in the feed.
+          </p>
+          <button type="submit" className="btn-primary" disabled={!canSubmit}>
+            Submit
+          </button>
+        </div>
+      )}
     </form>
   );
 }

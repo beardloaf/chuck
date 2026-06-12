@@ -8,6 +8,7 @@ import { Timeline, type TimelineItem } from "./Timeline";
 import { EscapeBack } from "./EscapeBack";
 import { ScrollLock } from "./ScrollLock";
 import { MediaCarousel } from "./MediaCarousel";
+import { StoryMediaArea } from "./StoryMediaArea";
 import { DownloadAll, type DownloadItem } from "./DownloadAll";
 import { asset, displayUrl } from "@/lib/site";
 
@@ -66,6 +67,13 @@ export default async function StoryPage({
     thumbUrl: firstImageByPost.get(p.id) ?? null,
     title: p.title,
   }));
+
+  // Neighbours for swipe navigation (same order as the default feed / timeline:
+  // newest first). Swipe right → previous (newer), swipe left → next (older).
+  const curIdx = allPosts.findIndex((p) => p.id === row.id);
+  const prevId = curIdx > 0 ? allPosts[curIdx - 1].id : null;
+  const nextId =
+    curIdx >= 0 && curIdx < allPosts.length - 1 ? allPosts[curIdx + 1].id : null;
 
   // Story-dated posts are month-granular; undated posts show the full posted date.
   const dateLabel = row.storyDate
@@ -126,7 +134,13 @@ export default async function StoryPage({
             </div>
             <DownloadAll items={downloadItems} />
           </div>
-          <div className="story-stage-media">{mediaEl}</div>
+          <StoryMediaArea
+            className="story-stage-media"
+            prevId={prevId}
+            nextId={nextId}
+          >
+            {mediaEl}
+          </StoryMediaArea>
         </div>
       ) : hasMedia ? (
         /* Media + story text: same top bar (back left, download right) so the
@@ -143,7 +157,13 @@ export default async function StoryPage({
             <div className="story-text">
               <div className="story-text-scroll">{prose}</div>
             </div>
-            <div className="story-media">{mediaEl}</div>
+            <StoryMediaArea
+              className="story-media"
+              prevId={prevId}
+              nextId={nextId}
+            >
+              {mediaEl}
+            </StoryMediaArea>
           </div>
         </>
       ) : (

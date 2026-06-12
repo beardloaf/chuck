@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
@@ -79,7 +79,27 @@ function AdminCard({ post }: { post: AdminPost }) {
     "approving" | "rejecting" | "pending" | "deleting" | null
   >(null);
   const [adding, setAdding] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [, startTransition] = useTransition();
+
+  // A Blob video that hasn't been transcoded to /compressed/ yet is still being
+  // optimized server-side; poll so the converted version (and the cleared
+  // "Optimizing…" badge) show up without a manual refresh.
+  const converting = post.media.some(
+    (m) =>
+      m.type === "video" &&
+      /\.blob\.vercel-storage\.com\//i.test(m.url) &&
+      !m.url.includes("/compressed/"),
+  );
+  useEffect(() => {
+    if (!converting) return;
+    const iv = setInterval(() => startTransition(() => router.refresh()), 4000);
+    const stop = setTimeout(() => clearInterval(iv), 120_000);
+    return () => {
+      clearInterval(iv);
+      clearTimeout(stop);
+    };
+  }, [converting, router]);
   const created = new Date(post.createdAt);
   const storyDate = post.storyDate ? new Date(post.storyDate) : null;
 
@@ -172,13 +192,20 @@ function AdminCard({ post }: { post: AdminPost }) {
             ? "audio"
             : "image";
       if (process.env.NEXT_PUBLIC_BLOB_UPLOAD === "1") {
+        setUploadPct(0);
+        const files = Array.from(fileList);
         const { upload } = await import("@vercel/blob/client");
-        for (const file of Array.from(fileList)) {
+        for (let i = 0; i < files.length; i++) {
+          const file = files[i];
           const safe = file.name.replace(/[^\w.-]/g, "_") || "upload";
           const blob = await upload(`uploads/${Date.now()}-${safe}`, file, {
             access: "public",
             handleUploadUrl: "/api/blob/upload",
             contentType: file.type || undefined,
+            onUploadProgress: (ev) => {
+              const overall = ((i + ev.percentage / 100) / files.length) * 100;
+              setUploadPct(Math.min(100, Math.round(overall)));
+            },
           });
           fd.append("mediaUrl[]", blob.url);
           fd.append("mediaType[]", typeOf(file));
@@ -187,6 +214,7 @@ function AdminCard({ post }: { post: AdminPost }) {
           fd.append("width", "");
           fd.append("height", "");
         }
+        setUploadPct(100);
       } else {
         for (const file of Array.from(fileList)) {
           fd.append("media[]", file, file.name);
@@ -209,6 +237,7 @@ function AdminCard({ post }: { post: AdminPost }) {
       startTransition(() => router.refresh());
     } finally {
       setAdding(false);
+      setUploadPct(null);
     }
   }
 
@@ -254,22 +283,48 @@ function AdminCard({ post }: { post: AdminPost }) {
 
       <div className="space-y-2 mb-4">
         {post.media.map((m) => (
-          <MediaItem key={m.id} m={m} onRemove={() => removeMedia(m.id)} />
-        ))}
-        <label className="btn-ghost text-sm inline-flex cursor-pointer items-center gap-2">
-          {adding ? "Adding…" : "+ Add photo / video"}
-          <input
-            type="file"
-            accept="image/*,video/*,audio/*"
-            multiple
-            className="hidden"
-            disabled={adding}
-            onChange={(e) => {
-              addMedia(e.target.files);
-              e.target.value = "";
-            }}
+          <MediaItem
+            key={m.id}
+            m={m}
+            onRemove={() => removeMedia(m.id)}
+            optimizing={
+              m.type === "video" &&
+              /\.blob\.vercel-storage\.com\//i.test(m.url) &&
+              !m.url.includes("/compressed/")
+            }
           />
-        </label>
+        ))}
+        {adding ? (
+          <div className="upload-status" aria-live="polite">
+            <div
+              className={`upload-bar ${uploadPct == null ? "is-indeterminate" : ""}`}
+            >
+              {uploadPct != null && (
+                <div
+                  className="upload-bar-fill"
+                  style={{ width: `${uploadPct}%` }}
+                />
+              )}
+            </div>
+            <span className="upload-label">
+              {uploadPct != null ? `Uploading… ${uploadPct}%` : "Adding…"}
+            </span>
+          </div>
+        ) : (
+          <label className="btn-ghost text-sm inline-flex cursor-pointer items-center gap-2">
+            + Add photo / video
+            <input
+              type="file"
+              accept="image/*,video/*,audio/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                addMedia(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap border-t border-line pt-4">
@@ -373,7 +428,15 @@ function StatusPill({ status }: { status: string }) {
   return <span className="status-pill">Pending</span>;
 }
 
-function MediaItem({ m, onRemove }: { m: AdminMedia; onRemove: () => void }) {
+function MediaItem({
+  m,
+  onRemove,
+  optimizing,
+}: {
+  m: AdminMedia;
+  onRemove: () => void;
+  optimizing?: boolean;
+}) {
   return (
     <div
       className={`relative max-w-full ${m.type === "image" ? "inline-block" : "block"}`}
@@ -404,6 +467,7 @@ function MediaItem({ m, onRemove }: { m: AdminMedia; onRemove: () => void }) {
           peaks={m.peaks ?? undefined}
         />
       )}
+      {optimizing && <span className="media-optimizing">Optimizing video…</span>}
       <button
         type="button"
         onClick={onRemove}
