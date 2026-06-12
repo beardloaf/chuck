@@ -790,16 +790,60 @@ p, span, li, label, input, textarea, button.body, .body {
 
 /* ----------------------------- Gallery layout --------------------------- */
 
+/* Collapsible wrapper — animates height via the grid-rows 0fr→1fr trick so the
+   info button can expand/collapse the intro smoothly. Collapsed by default. */
+.intro-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.intro-wrap[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.intro-wrap-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
 /* Memorial intro — a light "card" on the dark page: eyebrow + lead + body
    stacked, content on the left with negative space on the right. Inset by the
    page margin so it lines up with the feed; rounded like the tiles. */
 .intro {
+  position: relative; /* anchor for the collapse button */
   background: #d9d5ce;
   color: #1a1a1a;
   border-radius: var(--r-xl); /* same corner radius as the tiles */
   margin: 0 var(--page-x) clamp(1.5rem, 1rem + 2vw, 2.75rem);
   padding: clamp(2rem, 1.25rem + 3.5vw, 4.5rem)
     clamp(1.75rem, 1rem + 3.5vw, 4.5rem);
+  /* fades/slides in as the wrapper expands (the "creative" reveal) */
+  opacity: 0;
+  transform: translateY(-10px) scale(0.99);
+  transition: opacity 380ms ease,
+    transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.intro-wrap[data-open="true"] .intro {
+  opacity: 1;
+  transform: none;
+}
+/* Minus-in-a-circle to collapse the card from its top-right corner. */
+.intro-collapse {
+  position: absolute;
+  top: clamp(0.9rem, 0.5rem + 1.5vw, 1.75rem);
+  right: clamp(0.9rem, 0.5rem + 1.5vw, 1.75rem);
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.05);
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+.intro-collapse:hover {
+  background: rgba(0, 0, 0, 0.12);
 }
 .intro-eyebrow {
   font-family: var(--font-display);
@@ -1183,12 +1227,40 @@ p, span, li, label, input, textarea, button.body, .body {
 
 /* Top nav bar */
 .topbar {
+  position: relative; /* anchor for the top-left info button */
   display: flex;
   align-items: center;
   justify-content: center; /* centered brand (theme toggle hidden) */
   gap: 1rem;
   padding: clamp(1.75rem, 1rem + 2vw, 3rem) var(--page-x);
   margin-bottom: 0;
+}
+/* Top-left info/about button — toggles the intro card; logo stays centered. */
+.topbar-info {
+  position: absolute;
+  left: var(--page-x);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+  z-index: 5;
+}
+.topbar-info:hover {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+.topbar-info[data-open="true"] {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
 }
 .topbar-brand {
   font-family: var(--font-display);
@@ -1415,19 +1487,30 @@ p, span, li, label, input, textarea, button.body, .body {
   color: #fff;
 }
 
-/* Text-only tiles: emoji glyphs evoking the story, centered above the footer. */
-.tile-emojis {
+/* Text-only tiles: the headline fills the middle, auto-sized by useFitText.
+   The padding clears the date (top) and name (bottom) and leaves negative space. */
+.tile-lead {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 1rem 1rem 3.5rem; /* keep clear of the author/headline footer */
-  font-size: clamp(2rem, 9vw, 3.6rem);
-  line-height: 1;
+  padding: 3rem 1.5rem 3.25rem;
   pointer-events: none;
+}
+.tile-lead-text {
+  margin: 0;
+  max-width: 100%;
+  max-height: 100%;
+  text-align: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: var(--ink);
+  overflow-wrap: break-word;
+  /* initial size before useFitText refines it to the exact fit (limits flash) */
+  font-size: clamp(1.5rem, 6vw, 2.5rem);
 }
 
 /* Audio tile: waveform as the centerpiece */

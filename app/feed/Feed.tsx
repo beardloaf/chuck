@@ -26,6 +26,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
   const [dir, setDir] = useState<SortDir>("desc");
   const [open, setOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   function requestClose() {
     if (
@@ -62,9 +63,9 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
 
   return (
     <>
-      <SiteNav />
+      <SiteNav infoOpen={aboutOpen} onInfo={() => setAboutOpen((o) => !o)} />
 
-      <Intro />
+      <Intro open={aboutOpen} onClose={() => setAboutOpen(false)} />
 
       <div className="gallery">
         <ControlPanel

@@ -23,7 +23,13 @@ const LOGOS = [
  * hydration mismatch; the "Charles Mikula" text stands in until it loads. All
  * logos share a width; taller ones simply make the header taller.
  */
-export function SiteNav() {
+export function SiteNav({
+  infoOpen,
+  onInfo,
+}: {
+  infoOpen?: boolean;
+  onInfo?: () => void;
+}) {
   const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,6 +41,19 @@ export function SiteNav() {
 
   return (
     <header className="topbar">
+      {onInfo && (
+        <button
+          type="button"
+          className="topbar-info"
+          onClick={onInfo}
+          data-open={infoOpen ? "true" : "false"}
+          aria-label="About Charles Mikula"
+          aria-expanded={infoOpen}
+          title="About"
+        >
+          <InfoIcon />
+        </button>
+      )}
       <Link href="/" className="topbar-brand" aria-label="Charles Mikula">
         {logo ? (
           /* eslint-disable-next-line @next/next/no-img-element */
@@ -44,5 +63,15 @@ export function SiteNav() {
         )}
       </Link>
     </header>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <circle cx="9" cy="9" r="7" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9 8v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <circle cx="9" cy="5.5" r="0.95" fill="currentColor" />
+    </svg>
   );
 }

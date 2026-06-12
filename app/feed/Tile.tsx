@@ -1,13 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { TileAudio } from "./TileAudio";
 import { TileVideo } from "./TileVideo";
 
 /** How long each image shows before auto-advancing (ms) — matches the detail view. */
 const SLIDE_MS = 5000;
+
+const useIsoLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+
+/**
+ * Scale a text element to the largest font size (≤60px) that fits its parent
+ * box, re-fitting when the box resizes. Used to make a text-only tile's
+ * headline fill the middle of the tile. No-op when the ref isn't mounted.
+ */
+function useFitText(text: string) {
+  const ref = useRef<HTMLParagraphElement | null>(null);
+  useIsoLayoutEffect(() => {
+    const el = ref.current;
+    const box = el?.parentElement;
+    if (!el || !box) return;
+    const fit = () => {
+      const maxW = box.clientWidth;
+      const maxH = box.clientHeight;
+      if (maxW <= 0 || maxH <= 0) return;
+      let lo = 12;
+      let hi = 60;
+      for (let i = 0; i < 7; i++) {
+        const mid = (lo + hi) / 2;
+        el.style.fontSize = `${mid}px`;
+        if (el.scrollWidth <= maxW && el.scrollHeight <= maxH) lo = mid;
+        else hi = mid;
+      }
+      el.style.fontSize = `${Math.floor(lo)}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [text]);
+  return ref;
+}
 
 export interface FeedMedia {
   id: string;
@@ -93,6 +129,7 @@ export function Tile({ post }: { post: FeedPost }) {
   const variant = QUIET_VARIANTS[hashStr(post.id) % QUIET_VARIANTS.length];
   const onMedia = isImageLed || isVideo;
   const headline = tileHeadline(post);
+  const leadRef = useFitText(headline);
   // Story-dated posts are month-granular → show "MMM yyyy"; otherwise the
   // full posted date.
   const dateLabel = post.storyDate
@@ -174,12 +211,13 @@ export function Tile({ post }: { post: FeedPost }) {
           />
         )}
 
-        {/* Text-only: a few emojis evoking the story so the tile isn't blank. */}
-        {isTextOnly && (
-          <div className="tile-emojis" aria-hidden>
-            {storyEmojis(post).map((e, i) => (
-              <span key={i}>{e}</span>
-            ))}
+        {/* Text-only: the headline fills the middle of the tile (auto-fit to the
+            largest size that fits, with the date above and the name below). */}
+        {isTextOnly && headline && (
+          <div className="tile-lead">
+            <p ref={leadRef} className="tile-lead-text">
+              {headline}
+            </p>
           </div>
         )}
 
@@ -197,7 +235,9 @@ export function Tile({ post }: { post: FeedPost }) {
           <span className={`tile-author-pill ${onMedia ? "on-media" : ""}`}>
             {post.author}
           </span>
-          {headline && <p className="tile-headline">{headline}</p>}
+          {!isTextOnly && headline && (
+            <p className="tile-headline">{headline}</p>
+          )}
           {isMultiImage && (
             <div className="tile-dots" role="tablist" aria-label="Choose image">
               {images.map((m, i) => (
@@ -256,61 +296,6 @@ function hashStr(s: string): number {
   return h;
 }
 
-/** Keyword → emoji rules; first matches win. Used to give text-only tiles some
- *  visual flavor drawn from the story itself. */
-const EMOJI_RULES: [RegExp, string][] = [
-  [/beer|brew|pint|cheers|shotgun a/i, "🍺"],
-  [/golf/i, "⛳"],
-  [/sunset|sundown/i, "🌅"],
-  [/sunrise|\bdawn\b/i, "🌄"],
-  [/beach|coast|ocean|\bsea\b|wave|surf/i, "🌊"],
-  [/mountain|hike|trail|peak|summit|mauna|kea/i, "⛰️"],
-  [/music|song|band|guitar|metal|concert|sing|elton|2pac|melody/i, "🎸"],
-  [/\bcar\b|drive|road|truck|golf cart/i, "🚗"],
-  [/dog|puppy|tinkerbell/i, "🐕"],
-  [/\bcat\b|kitten/i, "🐈"],
-  [/fish/i, "🎣"],
-  [/birthday/i, "🎂"],
-  [/wedding|married|marriage|bride/i, "💍"],
-  [/baby|newborn|\bborn\b/i, "👶"],
-  [/christmas|xmas/i, "🎄"],
-  [/halloween|scary|spooky|costume|knott|haunt/i, "🎃"],
-  [/love|sweetheart|\bdear\b/i, "❤️"],
-  [/laugh|funny|joke|mischie|prank|hung|fairy/i, "😄"],
-  [/family|\bdad\b|\bmom\b|grandpa|grandma|\bson\b|daughter|\bkids?\b|poppa|husband/i, "👨‍👩‍👧‍👦"],
-  [/coffee/i, "☕"],
-  [/food|dinner|\beat\b|cook|bbq|barbecue|cheese/i, "🍽️"],
-  [/\bsun\b|summer/i, "☀️"],
-  [/snow|winter|\bski\b/i, "❄️"],
-  [/camp|tent|campfire|bonfire/i, "🔥"],
-  [/\bstar\b|\bnight\b|moon/i, "🌙"],
-  [/photo|picture|camera|\bframe/i, "📷"],
-  [/travel|\btrip\b|spain|hawaii|vacation/i, "✈️"],
-  [/party|celebrat/i, "🎉"],
-  [/\bwork|\bjob\b/i, "💼"],
-  [/conquistador|sword|knight/i, "🗡️"],
-  [/rest in power|rip\b/i, "✊"],
-];
-const FALLBACK_EMOJI = ["✨", "🕊️", "💫", "🌿", "📖", "🎞️", "💛", "⭐"];
-
-function storyEmojis(post: FeedPost): string[] {
-  const text = `${post.title ?? ""} ${post.body ?? ""}`;
-  const found: string[] = [];
-  for (const [re, emoji] of EMOJI_RULES) {
-    if (re.test(text) && !found.includes(emoji)) found.push(emoji);
-    if (found.length >= 4) break;
-  }
-  if (found.length > 0) return found;
-  // Deterministic fallback from the post id so it's stable across renders.
-  const h = hashStr(post.id);
-  return [
-    ...new Set([
-      FALLBACK_EMOJI[h % FALLBACK_EMOJI.length],
-      FALLBACK_EMOJI[(h >> 3) % FALLBACK_EMOJI.length],
-      FALLBACK_EMOJI[(h >> 6) % FALLBACK_EMOJI.length],
-    ]),
-  ];
-}
 
 /**
  * Average luminance (0–1) of the top-left region where the date sits. Returns
