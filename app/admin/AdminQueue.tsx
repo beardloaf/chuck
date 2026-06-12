@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
 import { isCompressedVideo } from "@/lib/site";
-import { maybeConvertHeic } from "@/app/share/mediaFiles";
 
 export interface AdminMedia {
   id: string;
@@ -202,67 +201,64 @@ function AdminCard({ post }: { post: AdminPost }) {
     if (!fileList || fileList.length === 0) return;
     setAdding(true);
     try {
-      // Convert HEIC/HEIF → JPEG client-side (browsers can't display HEIC);
-      // drop any file whose conversion fails.
-      const requested = Array.from(fileList);
-      const files = (
-        await Promise.all(requested.map((f) => maybeConvertHeic(f)))
-      ).filter((f): f is File => f !== null);
-      if (files.length === 0) {
-        window.alert(
-          "Couldn't process that file — if it's a HEIC photo the conversion failed. Try exporting it as JPEG.",
-        );
-        return;
-      }
-      if (files.length < requested.length) {
-        window.alert(
-          `Skipped ${requested.length - files.length} file(s) that couldn't be processed (likely an unsupported HEIC variant).`,
-        );
-      }
-
-      const fd = new FormData();
+      const files = Array.from(fileList);
+      const isHeic = (f: File) =>
+        /image\/hei[cf]/i.test(f.type) || /\.(heic|heif)$/i.test(f.name);
       const typeOf = (f: File) =>
         f.type.startsWith("video/")
           ? "video"
           : f.type.startsWith("audio/")
             ? "audio"
             : "image";
+
+      const fd = new FormData();
       if (process.env.NEXT_PUBLIC_BLOB_UPLOAD === "1") {
-        setUploadPct(0);
-        const { upload } = await import("@vercel/blob/client");
-        for (let i = 0; i < files.length; i++) {
-          const file = files[i];
-          const safe = file.name.replace(/[^\w.-]/g, "_") || "upload";
-          const blob = await upload(`uploads/${Date.now()}-${safe}`, file, {
-            access: "public",
-            handleUploadUrl: "/api/blob/upload",
-            contentType: file.type || undefined,
-            onUploadProgress: (ev) => {
-              const overall = ((i + ev.percentage / 100) / files.length) * 100;
-              setUploadPct(Math.min(100, Math.round(overall)));
-            },
-          });
-          fd.append("mediaUrl[]", blob.url);
-          fd.append("mediaType[]", typeOf(file));
-          fd.append("mediaMime[]", file.type || "");
-          fd.append("durationMs", "");
-          fd.append("width", "");
-          fd.append("height", "");
+        // HEIC is converted to JPEG server-side, so send those inline (they're
+        // small). Everything else uploads straight to Blob (handles big files).
+        const blobFiles = files.filter((f) => !isHeic(f));
+        const inlineFiles = files.filter(isHeic);
+        if (blobFiles.length) {
+          setUploadPct(0);
+          const { upload } = await import("@vercel/blob/client");
+          for (let i = 0; i < blobFiles.length; i++) {
+            const file = blobFiles[i];
+            const safe = file.name.replace(/[^\w.-]/g, "_") || "upload";
+            const blob = await upload(`uploads/${Date.now()}-${safe}`, file, {
+              access: "public",
+              handleUploadUrl: "/api/blob/upload",
+              contentType: file.type || undefined,
+              onUploadProgress: (ev) => {
+                const overall =
+                  ((i + ev.percentage / 100) / blobFiles.length) * 100;
+                setUploadPct(Math.min(100, Math.round(overall)));
+              },
+            });
+            fd.append("mediaUrl[]", blob.url);
+            fd.append("mediaType[]", typeOf(file));
+            fd.append("mediaMime[]", file.type || "");
+          }
+          setUploadPct(100);
         }
-        setUploadPct(100);
+        for (const file of inlineFiles) {
+          fd.append("media[]", file, file.name);
+        }
       } else {
         for (const file of files) {
           fd.append("media[]", file, file.name);
-          fd.append("durationMs", "");
-          fd.append("width", "");
-          fd.append("height", "");
         }
       }
       const res = await fetch(`/api/admin/posts/${post.id}/media`, {
         method: "POST",
         body: fd,
       });
-      if (!res.ok) throw new Error("Add failed");
+      if (!res.ok) {
+        const msg = await res
+          .json()
+          .then((d) => (d as { error?: string }).error)
+          .catch(() => null);
+        window.alert(msg || "Couldn't add that media.");
+        return;
+      }
       // Fire-and-forget H.264 transcode of any added video (server-side).
       if (files.some((f) => f.type.startsWith("video/"))) {
         fetch(`/api/posts/${post.id}/compress`, { method: "POST" }).catch(

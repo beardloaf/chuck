@@ -73,15 +73,33 @@ export interface SavedFile {
 export async function saveUpload(file: File): Promise<SavedFile> {
   // MediaRecorder emits types like "video/webm;codecs=vp9,opus" — strip the
   // codec parameters before checking the allowlist.
-  const mime = (file.type || "").toLowerCase().split(";")[0].trim();
+  let mime = (file.type || "").toLowerCase().split(";")[0].trim();
+  let buf = Buffer.from(await file.arrayBuffer());
+
+  // HEIC/HEIF isn't web-displayable, so convert it to JPEG here (server-side,
+  // via heic-convert) regardless of how it arrived. Browsers and the feed can
+  // then show it like any other photo.
+  const isHeic =
+    /^image\/hei[cf]$/.test(mime) || /\.(heic|heif)$/i.test(file.name || "");
+  if (isHeic) {
+    try {
+      const heicConvert = (await import("heic-convert")).default;
+      const out = await heicConvert({ buffer: buf, format: "JPEG", quality: 0.9 });
+      buf = Buffer.from(out);
+      mime = "image/jpeg";
+    } catch {
+      throw new StorageError("Couldn't convert that HEIC photo", 415);
+    }
+  }
+
   const type = MIME_TO_TYPE[mime];
   if (!type) {
     throw new StorageError(`Unsupported file type: ${mime || "unknown"}`, 415);
   }
   const limit = SIZE_LIMITS[type];
-  if (file.size > limit) {
+  if (buf.length > limit) {
     throw new StorageError(
-      `${type} file too large (${formatBytes(file.size)} > ${formatBytes(limit)})`,
+      `${type} file too large (${formatBytes(buf.length)} > ${formatBytes(limit)})`,
       413,
     );
   }
@@ -93,8 +111,6 @@ export async function saveUpload(file: File): Promise<SavedFile> {
   const filename = `${randomUUID()}.${ext}`;
   const key = `uploads/${yyyy}/${mm}/${filename}`;
 
-  const buf = Buffer.from(await file.arrayBuffer());
-
   // Hosts with a read-only/ephemeral filesystem (Vercel) → Vercel Blob.
   // Works with either a read-write token or a connected store (BLOB_STORE_ID),
   // which the SDK authenticates via the function's OIDC token.
@@ -102,14 +118,14 @@ export async function saveUpload(file: File): Promise<SavedFile> {
   if (process.env.BLOB_READ_WRITE_TOKEN || process.env.BLOB_STORE_ID) {
     const { put } = await import("@vercel/blob");
     const { url } = await put(key, buf, { access: "public", contentType: mime });
-    return { url, type, mime, size: file.size };
+    return { url, type, mime, size: buf.length };
   }
 
   const dir = path.join(UPLOAD_ROOT, yyyy, mm);
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(path.join(dir, filename), buf);
 
-  return { url: `/${key}`, type, mime, size: file.size };
+  return { url: `/${key}`, type, mime, size: buf.length };
 }
 
 export class StorageError extends Error {
