@@ -154,6 +154,7 @@ function Slide({ m, active }: { m: CarouselMedia; active: boolean }) {
         controls
         autoPlay
         muted
+        loop
         playsInline
         preload="metadata"
         className="carousel-video"

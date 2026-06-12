@@ -10,8 +10,11 @@ const interTight = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: "Mikula",
-  description: "A small home for stories.",
+  title: {
+    default: "Charles Mikula — In Memories",
+    template: "Charles Mikula — %s",
+  },
+  description: "In memory of Charles “Chuck” Mikula.",
 };
 
 export default function RootLayout({

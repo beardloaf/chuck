@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { db, schema } from "@/lib/db";
 import { eq, and, inArray, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
@@ -15,6 +16,26 @@ import { asset, displayUrl } from "@/lib/site";
 // Rendered at request time so a story is viewable as soon as it's approved,
 // without a rebuild.
 export const dynamic = "force-dynamic";
+
+// Title → "Charles Mikula — <post title or month/year>" (template lives in the
+// root layout); falls back to the default for missing posts.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const [row] = await db
+    .select()
+    .from(schema.posts)
+    .where(and(eq(schema.posts.id, id), eq(schema.posts.status, "approved")))
+    .limit(1)
+    .all();
+  if (!row) return {};
+  const title =
+    row.title?.trim() || format(row.storyDate ?? row.createdAt, "MMMM yyyy");
+  return { title };
+}
 
 export default async function StoryPage({
   params,
@@ -230,6 +251,7 @@ function MediaBlock({ m }: { m: typeof schema.mediaItems.$inferSelect }) {
         controls
         autoPlay
         muted
+        loop
         playsInline
         preload="metadata"
         className="story-video"

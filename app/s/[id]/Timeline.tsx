@@ -93,7 +93,9 @@ export function Timeline({
                   ) : it.videoUrl ? (
                     <video
                       src={it.videoUrl}
+                      autoPlay
                       muted
+                      loop
                       playsInline
                       preload="metadata"
                       tabIndex={-1}

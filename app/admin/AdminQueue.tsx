@@ -93,8 +93,9 @@ function AdminCard({ post }: { post: AdminPost }) {
   );
   useEffect(() => {
     if (!converting) return;
-    const iv = setInterval(() => startTransition(() => router.refresh()), 4000);
-    const stop = setTimeout(() => clearInterval(iv), 120_000);
+    // Transcodes can take ~2 min; poll long enough that the badge clears itself.
+    const iv = setInterval(() => startTransition(() => router.refresh()), 5000);
+    const stop = setTimeout(() => clearInterval(iv), 360_000);
     return () => {
       clearInterval(iv);
       clearTimeout(stop);
@@ -457,6 +458,7 @@ function MediaItem({
         <video
           src={m.url}
           controls
+          loop
           preload="metadata"
           className="rounded-md w-full max-h-72 bg-black"
         />

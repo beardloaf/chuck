@@ -174,6 +174,15 @@ export function Tile({ post }: { post: FeedPost }) {
           />
         )}
 
+        {/* Text-only: a few emojis evoking the story so the tile isn't blank. */}
+        {isTextOnly && (
+          <div className="tile-emojis" aria-hidden>
+            {storyEmojis(post).map((e, i) => (
+              <span key={i}>{e}</span>
+            ))}
+          </div>
+        )}
+
         {/* Top metadata: date only (author moved to a pill above headline) */}
         <header
           className={`tile-head ${onMedia ? "on-media" : ""}`}
@@ -245,6 +254,62 @@ function hashStr(s: string): number {
   let h = 0;
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return h;
+}
+
+/** Keyword → emoji rules; first matches win. Used to give text-only tiles some
+ *  visual flavor drawn from the story itself. */
+const EMOJI_RULES: [RegExp, string][] = [
+  [/beer|brew|pint|cheers|shotgun a/i, "🍺"],
+  [/golf/i, "⛳"],
+  [/sunset|sundown/i, "🌅"],
+  [/sunrise|\bdawn\b/i, "🌄"],
+  [/beach|coast|ocean|\bsea\b|wave|surf/i, "🌊"],
+  [/mountain|hike|trail|peak|summit|mauna|kea/i, "⛰️"],
+  [/music|song|band|guitar|metal|concert|sing|elton|2pac|melody/i, "🎸"],
+  [/\bcar\b|drive|road|truck|golf cart/i, "🚗"],
+  [/dog|puppy|tinkerbell/i, "🐕"],
+  [/\bcat\b|kitten/i, "🐈"],
+  [/fish/i, "🎣"],
+  [/birthday/i, "🎂"],
+  [/wedding|married|marriage|bride/i, "💍"],
+  [/baby|newborn|\bborn\b/i, "👶"],
+  [/christmas|xmas/i, "🎄"],
+  [/halloween|scary|spooky|costume|knott|haunt/i, "🎃"],
+  [/love|sweetheart|\bdear\b/i, "❤️"],
+  [/laugh|funny|joke|mischie|prank|hung|fairy/i, "😄"],
+  [/family|\bdad\b|\bmom\b|grandpa|grandma|\bson\b|daughter|\bkids?\b|poppa|husband/i, "👨‍👩‍👧‍👦"],
+  [/coffee/i, "☕"],
+  [/food|dinner|\beat\b|cook|bbq|barbecue|cheese/i, "🍽️"],
+  [/\bsun\b|summer/i, "☀️"],
+  [/snow|winter|\bski\b/i, "❄️"],
+  [/camp|tent|campfire|bonfire/i, "🔥"],
+  [/\bstar\b|\bnight\b|moon/i, "🌙"],
+  [/photo|picture|camera|\bframe/i, "📷"],
+  [/travel|\btrip\b|spain|hawaii|vacation/i, "✈️"],
+  [/party|celebrat/i, "🎉"],
+  [/\bwork|\bjob\b/i, "💼"],
+  [/conquistador|sword|knight/i, "🗡️"],
+  [/rest in power|rip\b/i, "✊"],
+];
+const FALLBACK_EMOJI = ["✨", "🕊️", "💫", "🌿", "📖", "🎞️", "💛", "⭐"];
+
+function storyEmojis(post: FeedPost): string[] {
+  const text = `${post.title ?? ""} ${post.body ?? ""}`;
+  const found: string[] = [];
+  for (const [re, emoji] of EMOJI_RULES) {
+    if (re.test(text) && !found.includes(emoji)) found.push(emoji);
+    if (found.length >= 4) break;
+  }
+  if (found.length > 0) return found;
+  // Deterministic fallback from the post id so it's stable across renders.
+  const h = hashStr(post.id);
+  return [
+    ...new Set([
+      FALLBACK_EMOJI[h % FALLBACK_EMOJI.length],
+      FALLBACK_EMOJI[(h >> 3) % FALLBACK_EMOJI.length],
+      FALLBACK_EMOJI[(h >> 6) % FALLBACK_EMOJI.length],
+    ]),
+  ];
 }
 
 /**

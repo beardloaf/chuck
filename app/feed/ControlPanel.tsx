@@ -15,9 +15,9 @@ export interface Counts {
 
 const ROWS: { key: FilterKey; label: string }[] = [
   { key: "all", label: "All" },
-  { key: "words", label: "Words" },
   { key: "photo", label: "Photos" },
   { key: "video", label: "Videos" },
+  { key: "words", label: "Words" },
 ];
 
 export function ControlPanel({

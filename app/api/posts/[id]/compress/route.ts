@@ -1,11 +1,12 @@
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
+import { after } from "next/server";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { transcodeVideoToH264, isCompressedVideo, isBlobUrl } from "@/lib/video";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-// Transcoding can take a while; Fluid Compute allows long-running functions.
+// Transcoding a long clip can take 1–2 min; Fluid Compute allows it.
 export const maxDuration = 300;
 
 /**
@@ -14,9 +15,10 @@ export const maxDuration = 300;
  * file, deleting the original Blob. Idempotent: media already under
  * `compressed/` or served from the committed /uploads tree are skipped.
  *
- * Called fire-and-forget by the composer (and admin) after an upload, and can
- * be re-run for existing posts. Unauthenticated but rate-limited and harmless
- * (it only re-encodes media already attached to a real post).
+ * The actual transcode runs in `after()` — i.e. AFTER the response is sent —
+ * so it isn't bound to the caller's connection. A fire-and-forget client fetch
+ * would otherwise be cancelled (killing the transcode) the moment the page
+ * navigates or refreshes, which is exactly what left earlier videos unconverted.
  */
 export async function POST(
   req: Request,
@@ -44,23 +46,24 @@ export async function POST(
     (m) => m.type === "video" && isBlobUrl(m.url) && !isCompressedVideo(m.url),
   );
 
-  let compressed = 0;
-  for (const m of targets) {
-    const result = await transcodeVideoToH264(m.url);
-    if (!result) continue;
-    const oldUrl = m.url;
-    await db
-      .update(schema.mediaItems)
-      .set({ url: result.url, mime: "video/mp4" })
-      .where(eq(schema.mediaItems.id, m.id));
-    compressed++;
-    try {
-      const { del } = await import("@vercel/blob");
-      await del(oldUrl);
-    } catch {
-      /* best-effort cleanup of the original */
-    }
+  if (targets.length > 0) {
+    after(async () => {
+      for (const m of targets) {
+        const result = await transcodeVideoToH264(m.url);
+        if (!result) continue;
+        await db
+          .update(schema.mediaItems)
+          .set({ url: result.url, mime: "video/mp4" })
+          .where(eq(schema.mediaItems.id, m.id));
+        try {
+          const { del } = await import("@vercel/blob");
+          await del(m.url);
+        } catch {
+          /* best-effort cleanup of the original */
+        }
+      }
+    });
   }
 
-  return Response.json({ ok: true, targets: targets.length, compressed });
+  return Response.json({ ok: true, targets: targets.length, queued: targets.length });
 }
