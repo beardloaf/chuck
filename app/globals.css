@@ -54,10 +54,10 @@
   --frost: rgba(255, 255, 255, 0.14);
   --frost-ink: #ffffff;
 
-  /* Active state for filters + toggles (filter rows, sort toggle, sort dir) —
-     white, distinct from the electric-yellow add button. */
-  --on: #ffffff;
-  --on-ink: #141414; /* dark text/icon on the active surface */
+  /* Active state for filters + toggles — a touch lighter than the hover grey
+     (--surface-3 #292929), with light text. No border. */
+  --on: #383838;
+  --on-ink: var(--ink);
 
   /* Add button — white with dark text */
   --add-bg: #ffffff;
@@ -1049,24 +1049,21 @@ p, span, li, label, input, textarea, button.body, .body {
   padding: 0.6rem 0.9rem;
   border-radius: var(--r-md);
   background: var(--surface-2);
-  /* transparent base border so the active outline doesn't shift the layout */
-  border: 2px solid transparent;
+  border: 0;
   color: var(--ink-2);
   cursor: pointer;
   flex: 1;
   min-height: 0;
-  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+  transition: background 140ms ease, color 140ms ease;
 }
 .cp-row:hover {
   color: var(--ink);
   background: var(--surface-3);
 }
-/* Active: same dark surface as the inactive rows, outlined with the inactive
-   text grey, with white label/count. */
+/* Active: a touch lighter than the hover grey, light text, no border. */
 .cp-row[data-on="true"] {
-  background: var(--surface-2);
-  border-color: var(--ink-2);
-  color: #fff;
+  background: var(--on);
+  color: var(--on-ink);
 }
 .cp-label {
   font-family: var(--font-display);
@@ -1084,7 +1081,7 @@ p, span, li, label, input, textarea, button.body, .body {
   font-variant-numeric: tabular-nums;
 }
 .cp-row[data-on="true"] .cp-count {
-  color: #fff;
+  color: var(--on-ink);
 }
 
 /* Sort controls row — same height as a filter row above it. */
@@ -1233,7 +1230,7 @@ p, span, li, label, input, textarea, button.body, .body {
 /* ---- Scroll-revealed floating "add a memory" button ---- */
 /* The zone spans the bottom dock space. While scrolling, the button floats at
    the bottom over a gradient (a fadeable ::before). When you reach the bottom,
-   the gradient fades out and the button centers in the empty dock space. */
+   the gradient simply fades out and the button stays put (no movement). */
 .fab-zone {
   position: fixed;
   left: 0;
@@ -1268,11 +1265,8 @@ p, span, li, label, input, textarea, button.body, .body {
   opacity: 1;
   transform: none;
 }
-/* Docked at the bottom of the page: no gradient, button centered in the space. */
-.fab-zone[data-docked="true"] {
-  align-items: center;
-  padding-bottom: 0;
-}
+/* Docked at the bottom of the page: just fade the gradient out. The button
+   stays exactly where it is (no jump / re-centering). */
 .fab-zone[data-docked="true"]::before {
   opacity: 0;
 }
@@ -1280,6 +1274,8 @@ p, span, li, label, input, textarea, button.body, .body {
    full label. */
 .fab {
   pointer-events: auto;
+  position: relative;
+  z-index: 1; /* above the gradient ::before */
   display: inline-flex;
   align-items: center;
   height: 3.25rem;

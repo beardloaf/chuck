@@ -193,13 +193,38 @@ function InfoIcon() {
   );
 }
 
-/** A carousel/cards mark — a prominent center card flanked by two side cards. */
+/** Browse-photos mark — an image frame (sun + mountain) flanked by ‹ › chevrons. */
 function TimelineIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <rect x="8.5" y="3.5" width="7" height="17" rx="2" stroke="currentColor" strokeWidth="1.9" />
-      <rect x="2.75" y="6.75" width="3.5" height="10.5" rx="1.4" stroke="currentColor" strokeWidth="1.9" />
-      <rect x="17.75" y="6.75" width="3.5" height="10.5" rx="1.4" stroke="currentColor" strokeWidth="1.9" />
+    <svg width="22" height="18" viewBox="0 0 30 22" fill="none" aria-hidden>
+      {/* left chevron */}
+      <path
+        d="M4 7l-2.3 4 2.3 4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* image frame */}
+      <rect x="8" y="4" width="14" height="14" rx="2.6" stroke="currentColor" strokeWidth="1.7" />
+      {/* sun */}
+      <circle cx="17.6" cy="8.4" r="1.3" fill="currentColor" />
+      {/* mountain */}
+      <path
+        d="M9 16.4l3.3-3.7 2.2 2.2 2.4-2.8 4 4.3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* right chevron */}
+      <path
+        d="M26 7l2.3 4-2.3 4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
