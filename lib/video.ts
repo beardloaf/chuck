@@ -12,12 +12,9 @@ import { randomUUID } from "node:crypto";
 
 const BLOB_HOST = /^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\//i;
 
-/** A media URL we've already transcoded — skip to stay idempotent. The current
- * scheme stores the compressed file next to the original as `<original>.c.mp4`;
- * older videos used a `/compressed/<uuid>.mp4` path. */
-export function isCompressedVideo(url: string): boolean {
-  return url.includes("/compressed/") || /\.c\.mp4(?:\?|$)/i.test(url);
-}
+// Single source of truth lives in lib/site.ts (client-safe); re-export so the
+// compress route can keep importing it from here.
+export { isCompressedVideo } from "./site";
 
 export function isBlobUrl(url: string): boolean {
   return BLOB_HOST.test(url);

@@ -4,6 +4,8 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
+import { isCompressedVideo } from "@/lib/site";
+import { maybeConvertHeic } from "@/app/share/mediaFiles";
 
 export interface AdminMedia {
   id: string;
@@ -82,14 +84,14 @@ function AdminCard({ post }: { post: AdminPost }) {
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [, startTransition] = useTransition();
 
-  // A Blob video that hasn't been transcoded to /compressed/ yet is still being
-  // optimized server-side; poll so the converted version (and the cleared
-  // "Optimizing…" badge) show up without a manual refresh.
+  // A Blob video that hasn't been transcoded yet is still being optimized
+  // server-side; poll so the converted version (and the cleared "Optimizing…"
+  // badge) show up without a manual refresh.
   const converting = post.media.some(
     (m) =>
       m.type === "video" &&
       /\.blob\.vercel-storage\.com\//i.test(m.url) &&
-      !m.url.includes("/compressed/"),
+      !isCompressedVideo(m.url),
   );
   useEffect(() => {
     if (!converting) return;
@@ -181,10 +183,32 @@ function AdminCard({ post }: { post: AdminPost }) {
     if (res.ok) startTransition(() => router.refresh());
   }
 
+  // Reorder media: swap item at `index` with its neighbour and persist the new
+  // order (positions = array index).
+  async function moveMedia(index: number, dir: -1 | 1) {
+    const order = post.media.map((m) => m.id);
+    const to = index + dir;
+    if (to < 0 || to >= order.length) return;
+    [order[index], order[to]] = [order[to], order[index]];
+    const res = await fetch(`/api/admin/posts/${post.id}/media`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: order }),
+    });
+    if (res.ok) startTransition(() => router.refresh());
+  }
+
   async function addMedia(fileList: FileList | null) {
     if (!fileList || fileList.length === 0) return;
     setAdding(true);
     try {
+      // Convert HEIC/HEIF → JPEG client-side (browsers can't display HEIC);
+      // drop any file whose conversion fails.
+      const files = (
+        await Promise.all(Array.from(fileList).map((f) => maybeConvertHeic(f)))
+      ).filter((f): f is File => f !== null);
+      if (files.length === 0) return;
+
       const fd = new FormData();
       const typeOf = (f: File) =>
         f.type.startsWith("video/")
@@ -194,7 +218,6 @@ function AdminCard({ post }: { post: AdminPost }) {
             : "image";
       if (process.env.NEXT_PUBLIC_BLOB_UPLOAD === "1") {
         setUploadPct(0);
-        const files = Array.from(fileList);
         const { upload } = await import("@vercel/blob/client");
         for (let i = 0; i < files.length; i++) {
           const file = files[i];
@@ -217,7 +240,7 @@ function AdminCard({ post }: { post: AdminPost }) {
         }
         setUploadPct(100);
       } else {
-        for (const file of Array.from(fileList)) {
+        for (const file of files) {
           fd.append("media[]", file, file.name);
           fd.append("durationMs", "");
           fd.append("width", "");
@@ -230,7 +253,7 @@ function AdminCard({ post }: { post: AdminPost }) {
       });
       if (!res.ok) throw new Error("Add failed");
       // Fire-and-forget H.264 transcode of any added video (server-side).
-      if (Array.from(fileList).some((f) => f.type.startsWith("video/"))) {
+      if (files.some((f) => f.type.startsWith("video/"))) {
         fetch(`/api/posts/${post.id}/compress`, { method: "POST" }).catch(
           () => {},
         );
@@ -283,15 +306,21 @@ function AdminCard({ post }: { post: AdminPost }) {
       </div>
 
       <div className="space-y-2 mb-4">
-        {post.media.map((m) => (
+        {post.media.map((m, i) => (
           <MediaItem
             key={m.id}
             m={m}
             onRemove={() => removeMedia(m.id)}
+            onMoveUp={post.media.length > 1 ? () => moveMedia(i, -1) : undefined}
+            onMoveDown={
+              post.media.length > 1 ? () => moveMedia(i, 1) : undefined
+            }
+            isFirst={i === 0}
+            isLast={i === post.media.length - 1}
             optimizing={
               m.type === "video" &&
               /\.blob\.vercel-storage\.com\//i.test(m.url) &&
-              !m.url.includes("/compressed/")
+              !isCompressedVideo(m.url)
             }
           />
         ))}
@@ -432,12 +461,21 @@ function StatusPill({ status }: { status: string }) {
 function MediaItem({
   m,
   onRemove,
+  onMoveUp,
+  onMoveDown,
+  isFirst,
+  isLast,
   optimizing,
 }: {
   m: AdminMedia;
   onRemove: () => void;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  isFirst?: boolean;
+  isLast?: boolean;
   optimizing?: boolean;
 }) {
+  const canReorder = !!(onMoveUp || onMoveDown);
   return (
     <div
       className={`relative max-w-full ${m.type === "image" ? "inline-block" : "block"}`}
@@ -470,6 +508,34 @@ function MediaItem({
         />
       )}
       {optimizing && <span className="media-optimizing">Optimizing video…</span>}
+      {canReorder && (
+        <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            disabled={isFirst}
+            aria-label="Move earlier"
+            title="Move earlier"
+            className="grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white backdrop-blur transition hover:bg-black/85 disabled:opacity-30 disabled:cursor-default"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+              <path d="M3.5 8.5L7 5l3.5 3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            disabled={isLast}
+            aria-label="Move later"
+            title="Move later"
+            className="grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white backdrop-blur transition hover:bg-black/85 disabled:opacity-30 disabled:cursor-default"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+              <path d="M3.5 5.5L7 9l3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      )}
       <button
         type="button"
         onClick={onRemove}

@@ -48,3 +48,13 @@ export function displayUrl(
 export function originalUrl(url: string): string {
   return /\.c\.mp4(\?|$)/i.test(url) ? url.replace(/\.c\.mp4(?=\?|$)/i, "") : url;
 }
+
+/**
+ * Whether a video URL is an already-transcoded copy. The current scheme stores
+ * the compressed file next to the original as `<original>.c.mp4`; older videos
+ * used a `/compressed/<uuid>.mp4` path. Pure + client-safe so the admin UI can
+ * tell "still optimizing" from "done" the same way the server does.
+ */
+export function isCompressedVideo(url: string): boolean {
+  return url.includes("/compressed/") || /\.c\.mp4(?:\?|$)/i.test(url);
+}

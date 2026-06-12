@@ -70,7 +70,7 @@ async function compressImageFile(file: File): Promise<File> {
 }
 
 /** HEIC/HEIF → JPEG. Returns the original file for everything else. */
-async function maybeConvertHeic(file: File): Promise<File | null> {
+export async function maybeConvertHeic(file: File): Promise<File | null> {
   const isHeic =
     /image\/hei[cf]/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
   if (!isHeic) return file;

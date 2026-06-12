@@ -121,3 +121,49 @@ export async function POST(
 
   return Response.json({ ok: true, added: saved.length });
 }
+
+/** Admin: reorder a post's media. Body: { ids: string[] } in the desired order;
+ *  each id's position is set to its index. The list must cover exactly this
+ *  post's media. */
+export async function PATCH(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> },
+) {
+  if (!(await isAuthed())) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const { id } = await ctx.params;
+
+  let body: { ids?: unknown };
+  try {
+    body = (await req.json()) as { ids?: unknown };
+  } catch {
+    return Response.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+  const ids = Array.isArray(body.ids)
+    ? body.ids.filter((x): x is string => typeof x === "string")
+    : [];
+
+  const existing = await db
+    .select()
+    .from(schema.mediaItems)
+    .where(eq(schema.mediaItems.postId, id))
+    .all();
+  const existingIds = new Set(existing.map((m) => m.id));
+  const ordered = ids.filter((x) => existingIds.has(x));
+  if (ordered.length !== existing.length) {
+    return Response.json(
+      { error: "Order must list every media item exactly once" },
+      { status: 400 },
+    );
+  }
+
+  for (let i = 0; i < ordered.length; i++) {
+    await db
+      .update(schema.mediaItems)
+      .set({ position: i })
+      .where(eq(schema.mediaItems.id, ordered[i]));
+  }
+
+  return Response.json({ ok: true });
+}
