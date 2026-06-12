@@ -1080,12 +1080,16 @@ p, span, li, label, input, textarea, button.body, .body {
 .add-btn span {
   text-transform: uppercase;
 }
-/* In the control panel it fills the remaining width of the actions row. */
+/* In the control panel it fills the remaining width of the actions row.
+   Tight padding/gap so the toggle + sort icon never get crowded into an
+   overlap (seen in Chrome on iOS, where aspect-ratio sizing runs a touch
+   larger). */
 .cp-add {
   flex: 1;
   min-width: 0;
   height: 100%;
-  padding: 0 1rem;
+  padding: 0 0.55rem;
+  gap: 0.3rem;
 }
 /* Ultra-narrow phones (≤359px, e.g. iPhone SE 1st gen): the toggle + sort icon
    + full "Add a memory" label can't share one row, so drop to the plus icon
@@ -1415,37 +1419,27 @@ p, span, li, label, input, textarea, button.body, .body {
   opacity: 1;
 }
 
-/* Carousel dots — always visible, floating at the bottom and out of the footer
-   flow so the headline stays inline with single-image tiles. */
+/* Multi-image dots — left-aligned in the footer, below the title. Hidden until
+   hover (kept rendered, NOT display:none, so the active dot's fill animation
+   keeps driving auto-advance); revealing them pushes the title/name up. The
+   dots reuse .carousel-dot / .carousel-dot-fill from the detail view. */
 .tile-dots {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0.6rem;
   display: flex;
-  justify-content: center;
-  gap: 0.4rem;
-  z-index: 3;
+  align-items: center;
+  gap: 9px;
+  max-height: 0;
+  opacity: 0;
+  margin-top: -0.55rem; /* cancels the footer row-gap while collapsed */
+  overflow: hidden;
   pointer-events: none;
+  transition: max-height 220ms ease, opacity 200ms ease, margin-top 220ms ease;
 }
-.tile-dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: var(--r-pill);
-  background: rgba(255, 255, 255, 0.55);
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.45);
-  border: 0;
-  cursor: pointer;
-  padding: 0;
+.tile:hover .tile-dots,
+.tile:focus-within .tile-dots {
+  max-height: 12px;
+  opacity: 1;
+  margin-top: 0;
   pointer-events: auto;
-  transition: background 140ms ease, transform 140ms ease;
-}
-.tile-dot:hover {
-  background: rgba(255, 255, 255, 0.85);
-}
-.tile-dot[data-on="true"] {
-  background: #fff;
-  transform: scale(1.25);
 }
 
 /* Badges (multi-media count, duration) */

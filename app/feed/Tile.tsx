@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { format } from "date-fns";
 import { TileAudio } from "./TileAudio";
 import { TileVideo } from "./TileVideo";
+
+/** How long each image shows before auto-advancing (ms) — matches the detail view. */
+const SLIDE_MS = 5000;
 
 export interface FeedMedia {
   id: string;
@@ -97,11 +100,9 @@ export function Tile({ post }: { post: FeedPost }) {
     : format(new Date(post.createdAt), "MMM d, yyyy");
   const audio = post.media.find((m) => m.type === "audio");
 
-  function go(delta: number, e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setIdx((i) => (i + delta + images.length) % images.length);
-  }
+  const next = useCallback(() => {
+    setIdx((i) => (i + 1) % images.length);
+  }, [images.length]);
   function jump(to: number, e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
@@ -134,22 +135,6 @@ export function Tile({ post }: { post: FeedPost }) {
                   data-active={i === idx}
                 />
               ))}
-              <button
-                type="button"
-                className="carousel-caret carousel-prev"
-                onClick={(e) => go(-1, e)}
-                aria-label="Previous image"
-              >
-                <CaretLeft />
-              </button>
-              <button
-                type="button"
-                className="carousel-caret carousel-next"
-                onClick={(e) => go(1, e)}
-                aria-label="Next image"
-              >
-                <CaretRight />
-              </button>
             </div>
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -176,28 +161,40 @@ export function Tile({ post }: { post: FeedPost }) {
           <span className="tile-date">{dateLabel}</span>
         </header>
 
-        {/* Bottom: author pill, headline (1 line), carousel dots */}
+        {/* Bottom: author pill, headline (1 line), and — for multi-image tiles —
+            the carousel dots below the title (left-aligned, revealed on hover). */}
         <div className="tile-foot">
           <span className={`tile-author-pill ${onMedia ? "on-media" : ""}`}>
             {post.author}
           </span>
           {headline && <p className="tile-headline">{headline}</p>}
+          {isMultiImage && (
+            <div className="tile-dots" role="tablist" aria-label="Choose image">
+              {images.map((m, i) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="carousel-dot"
+                  data-active={i === idx ? "true" : undefined}
+                  aria-label={`Show image ${i + 1} of ${images.length}`}
+                  aria-selected={i === idx}
+                  role="tab"
+                  onClick={(e) => jump(i, e)}
+                >
+                  {i === idx && (
+                    <span
+                      // Remount per slide so the fill restarts; on end → advance.
+                      key={idx}
+                      className="carousel-dot-fill"
+                      style={{ animationDuration: `${SLIDE_MS}ms` }}
+                      onAnimationEnd={next}
+                    />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-
-        {isMultiImage && (
-          <div className="tile-dots">
-            {images.map((m, i) => (
-              <button
-                key={m.id}
-                type="button"
-                className="tile-dot"
-                data-on={i === idx}
-                onClick={(e) => jump(i, e)}
-                aria-label={`Image ${i + 1}`}
-              />
-            ))}
-          </div>
-        )}
 
         {/* Multi-media count badge (video duration badge is rendered by TileVideo) */}
         {post.media.length > 1 && !isMultiImage && (
@@ -205,21 +202,6 @@ export function Tile({ post }: { post: FeedPost }) {
         )}
       </article>
     </Link>
-  );
-}
-
-function CaretLeft() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function CaretRight() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 
