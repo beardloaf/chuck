@@ -193,19 +193,13 @@ function InfoIcon() {
   );
 }
 
-/** Three connected nodes — O—O—O — a simple timeline/journey mark. */
+/** A carousel/cards mark — a prominent center card flanked by two side cards. */
 function TimelineIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 26 10" fill="none" aria-hidden>
-      <circle cx="4" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.7" />
-      <circle cx="13" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.7" />
-      <circle cx="22" cy="5" r="2.6" stroke="currentColor" strokeWidth="1.7" />
-      <path
-        d="M6.6 5h3.8M15.6 5h3.8"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="8.5" y="3.5" width="7" height="17" rx="2" stroke="currentColor" strokeWidth="1.9" />
+      <rect x="2.75" y="6.75" width="3.5" height="10.5" rx="1.4" stroke="currentColor" strokeWidth="1.9" />
+      <rect x="17.75" y="6.75" width="3.5" height="10.5" rx="1.4" stroke="currentColor" strokeWidth="1.9" />
     </svg>
   );
 }
