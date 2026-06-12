@@ -978,7 +978,8 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .cp-toggle {
   position: relative; /* anchor for the sliding thumb */
-  flex: 0 0 auto;
+  flex: 1; /* fill the leftover space in the actions row */
+  min-width: 0;
   display: flex;
   gap: 0.25rem;
   padding: 0.25rem;
@@ -991,7 +992,7 @@ p, span, li, label, input, textarea, button.body, .body {
   top: 0.25rem;
   bottom: 0.25rem;
   left: 0.25rem;
-  aspect-ratio: 1; /* matches a square option */
+  width: calc((100% - 0.75rem) / 2); /* exactly one (stretched) option wide */
   border-radius: calc(var(--r-md) - 3px);
   background: var(--on);
   z-index: 0;
@@ -1011,7 +1012,8 @@ p, span, li, label, input, textarea, button.body, .body {
   position: relative; /* sit above the sliding thumb */
   z-index: 1;
   height: 100%;
-  aspect-ratio: 1;
+  flex: 1; /* each option fills half the stretched toggle */
+  min-width: 0;
   border-radius: calc(var(--r-md) - 3px);
   background: transparent;
   border: 0;
@@ -1080,29 +1082,13 @@ p, span, li, label, input, textarea, button.body, .body {
 .add-btn span {
   text-transform: uppercase;
 }
-/* In the control panel it fills the remaining width of the actions row.
-   Tight padding/gap so the toggle + sort icon never get crowded into an
-   overlap (seen in Chrome on iOS, where aspect-ratio sizing runs a touch
-   larger). */
+/* In the control panel the Add button hugs its content; the toggle (flex:1)
+   absorbs the leftover width, so the sort icon between them stays visible. */
 .cp-add {
-  flex: 1;
-  min-width: 0;
+  flex: 0 0 auto;
   height: 100%;
-  padding: 0 0.55rem;
-  gap: 0.3rem;
-}
-/* Ultra-narrow phones (≤359px, e.g. iPhone SE 1st gen): the toggle + sort icon
-   + full "Add a memory" label can't share one row, so drop to the plus icon
-   only rather than clip the label. Modern iPhones (≥360px) keep the full CTA. */
-@media (max-width: 359px) {
-  .cp-add {
-    flex: 0 0 auto;
-    aspect-ratio: 1;
-    padding: 0;
-  }
-  .cp-add span {
-    display: none;
-  }
+  padding: 0 0.75rem;
+  gap: 0.4rem;
 }
 
 /* Top nav bar */
