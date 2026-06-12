@@ -204,10 +204,21 @@ function AdminCard({ post }: { post: AdminPost }) {
     try {
       // Convert HEIC/HEIF → JPEG client-side (browsers can't display HEIC);
       // drop any file whose conversion fails.
+      const requested = Array.from(fileList);
       const files = (
-        await Promise.all(Array.from(fileList).map((f) => maybeConvertHeic(f)))
+        await Promise.all(requested.map((f) => maybeConvertHeic(f)))
       ).filter((f): f is File => f !== null);
-      if (files.length === 0) return;
+      if (files.length === 0) {
+        window.alert(
+          "Couldn't process that file — if it's a HEIC photo the conversion failed. Try exporting it as JPEG.",
+        );
+        return;
+      }
+      if (files.length < requested.length) {
+        window.alert(
+          `Skipped ${requested.length - files.length} file(s) that couldn't be processed (likely an unsupported HEIC variant).`,
+        );
+      }
 
       const fd = new FormData();
       const typeOf = (f: File) =>
@@ -345,7 +356,7 @@ function AdminCard({ post }: { post: AdminPost }) {
             + Add photo / video
             <input
               type="file"
-              accept="image/*,video/*,audio/*"
+              accept="image/*,video/*,audio/*,.heic,.heif,image/heic,image/heif"
               multiple
               className="hidden"
               onChange={(e) => {
