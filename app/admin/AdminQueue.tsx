@@ -76,8 +76,9 @@ export function AdminQueue({
 function AdminCard({ post }: { post: AdminPost }) {
   const router = useRouter();
   const [busy, setBusy] = useState<
-    "approving" | "rejecting" | "deleting" | null
+    "approving" | "rejecting" | "pending" | "deleting" | null
   >(null);
+  const [adding, setAdding] = useState(false);
   const [, startTransition] = useTransition();
   const created = new Date(post.createdAt);
   const storyDate = post.storyDate ? new Date(post.storyDate) : null;
@@ -97,8 +98,14 @@ function AdminCard({ post }: { post: AdminPost }) {
     month !== monthOf(storyDate) ||
     year !== yearOf(storyDate);
 
-  async function setStatus(status: "approved" | "rejected") {
-    setBusy(status === "approved" ? "approving" : "rejecting");
+  async function setStatus(status: "approved" | "rejected" | "pending") {
+    setBusy(
+      status === "approved"
+        ? "approving"
+        : status === "rejected"
+          ? "rejecting"
+          : "pending",
+    );
     try {
       const res = await fetch(`/api/admin/posts/${post.id}/status`, {
         method: "POST",
@@ -147,6 +154,58 @@ function AdminCard({ post }: { post: AdminPost }) {
     }
   }
 
+  async function removeMedia(mediaId: string) {
+    if (!window.confirm("Remove this media from the post?")) return;
+    const res = await fetch(`/api/admin/media/${mediaId}`, { method: "DELETE" });
+    if (res.ok) startTransition(() => router.refresh());
+  }
+
+  async function addMedia(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setAdding(true);
+    try {
+      const fd = new FormData();
+      const typeOf = (f: File) =>
+        f.type.startsWith("video/")
+          ? "video"
+          : f.type.startsWith("audio/")
+            ? "audio"
+            : "image";
+      if (process.env.NEXT_PUBLIC_BLOB_UPLOAD === "1") {
+        const { upload } = await import("@vercel/blob/client");
+        for (const file of Array.from(fileList)) {
+          const safe = file.name.replace(/[^\w.-]/g, "_") || "upload";
+          const blob = await upload(`uploads/${Date.now()}-${safe}`, file, {
+            access: "public",
+            handleUploadUrl: "/api/blob/upload",
+            contentType: file.type || undefined,
+          });
+          fd.append("mediaUrl[]", blob.url);
+          fd.append("mediaType[]", typeOf(file));
+          fd.append("mediaMime[]", file.type || "");
+          fd.append("durationMs", "");
+          fd.append("width", "");
+          fd.append("height", "");
+        }
+      } else {
+        for (const file of Array.from(fileList)) {
+          fd.append("media[]", file, file.name);
+          fd.append("durationMs", "");
+          fd.append("width", "");
+          fd.append("height", "");
+        }
+      }
+      const res = await fetch(`/api/admin/posts/${post.id}/media`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) throw new Error("Add failed");
+      startTransition(() => router.refresh());
+    } finally {
+      setAdding(false);
+    }
+  }
+
   return (
     <article className="card p-5 sm:p-6">
       <header className="flex items-center justify-between gap-3 mb-4">
@@ -187,13 +246,25 @@ function AdminCard({ post }: { post: AdminPost }) {
         />
       </div>
 
-      {post.media.length > 0 && (
-        <div className="space-y-2 mb-4">
-          {post.media.map((m) => (
-            <MediaItem key={m.id} m={m} />
-          ))}
-        </div>
-      )}
+      <div className="space-y-2 mb-4">
+        {post.media.map((m) => (
+          <MediaItem key={m.id} m={m} onRemove={() => removeMedia(m.id)} />
+        ))}
+        <label className="btn-ghost text-sm inline-flex cursor-pointer items-center gap-2">
+          {adding ? "Adding…" : "+ Add photo / video"}
+          <input
+            type="file"
+            accept="image/*,video/*,audio/*"
+            multiple
+            className="hidden"
+            disabled={adding}
+            onChange={(e) => {
+              addMedia(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </label>
+      </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap border-t border-line pt-4">
         <div className="flex items-center gap-2">
@@ -244,35 +315,44 @@ function AdminCard({ post }: { post: AdminPost }) {
               {busy === "deleting" ? "Deleting…" : "Delete"}
             </button>
           )}
-          {post.status === "pending" ? (
-            <>
-              <button
-                type="button"
-                className="btn-ghost"
-                onClick={() => setStatus("rejected")}
-                disabled={busy != null}
-              >
-                {busy === "rejecting" ? "Rejecting…" : "Reject"}
-              </button>
-              <button
-                type="button"
-                className="btn-primary"
-                onClick={() => setStatus("approved")}
-                disabled={busy != null}
-              >
-                {busy === "approving" ? "Approving…" : "Approve"}
-              </button>
-            </>
-          ) : (
+          {post.status !== "pending" && (
             <button
               type="button"
               className="btn-ghost"
-              onClick={() =>
-                setStatus(post.status === "approved" ? "rejected" : "approved")
-              }
+              onClick={() => setStatus("pending")}
               disabled={busy != null}
             >
-              {post.status === "approved" ? "Move to rejected" : "Approve"}
+              {busy === "pending" ? "Moving…" : "Move to pending"}
+            </button>
+          )}
+          {post.status === "pending" && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setStatus("rejected")}
+              disabled={busy != null}
+            >
+              {busy === "rejecting" ? "Rejecting…" : "Reject"}
+            </button>
+          )}
+          {post.status === "approved" && (
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => setStatus("rejected")}
+              disabled={busy != null}
+            >
+              {busy === "rejecting" ? "Rejecting…" : "Move to rejected"}
+            </button>
+          )}
+          {post.status !== "approved" && (
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setStatus("approved")}
+              disabled={busy != null}
+            >
+              {busy === "approving" ? "Approving…" : "Approve"}
             </button>
           )}
         </div>
@@ -287,36 +367,53 @@ function StatusPill({ status }: { status: string }) {
   return <span className="status-pill">Pending</span>;
 }
 
-function MediaItem({ m }: { m: AdminMedia }) {
-  if (m.type === "image") {
-    return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={m.url}
-        alt=""
-        loading="lazy"
-        className="rounded-md max-h-72 w-auto border border-line"
-        style={{
-          aspectRatio: m.width && m.height ? `${m.width} / ${m.height}` : undefined,
-        }}
-      />
-    );
-  }
-  if (m.type === "video") {
-    return (
-      <video
-        src={m.url}
-        controls
-        preload="metadata"
-        className="rounded-md w-full max-h-72 bg-black"
-      />
-    );
-  }
+function MediaItem({ m, onRemove }: { m: AdminMedia; onRemove: () => void }) {
   return (
-    <AudioPlayer
-      src={m.url}
-      durationMs={m.durationMs ?? undefined}
-      peaks={m.peaks ?? undefined}
-    />
+    <div
+      className={`relative max-w-full ${m.type === "image" ? "inline-block" : "block"}`}
+    >
+      {m.type === "image" ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={m.url}
+          alt=""
+          loading="lazy"
+          className="rounded-md max-h-72 w-auto border border-line"
+          style={{
+            aspectRatio:
+              m.width && m.height ? `${m.width} / ${m.height}` : undefined,
+          }}
+        />
+      ) : m.type === "video" ? (
+        <video
+          src={m.url}
+          controls
+          preload="metadata"
+          className="rounded-md w-full max-h-72 bg-black"
+        />
+      ) : (
+        <AudioPlayer
+          src={m.url}
+          durationMs={m.durationMs ?? undefined}
+          peaks={m.peaks ?? undefined}
+        />
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label="Remove media"
+        title="Remove media"
+        className="absolute right-1.5 top-1.5 grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white backdrop-blur transition hover:bg-black/85"
+      >
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+          <path
+            d="M3.5 3.5l7 7M10.5 3.5l-7 7"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+        </svg>
+      </button>
+    </div>
   );
 }
