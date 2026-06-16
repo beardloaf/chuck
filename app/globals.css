@@ -1115,12 +1115,12 @@ p, span, li, label, input, textarea, button.body, .body {
   pointer-events: none;
   transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease;
 }
-/* "By story date" is the first (left) option and the default; "most recent" is
+/* "Most recent" is the first (left) option and the default; "by story date" is
    the second (right) option. */
-.cp-toggle[data-active="story"] .cp-toggle-thumb {
+.cp-toggle[data-active="recent"] .cp-toggle-thumb {
   transform: translateX(0);
 }
-.cp-toggle[data-active="recent"] .cp-toggle-thumb {
+.cp-toggle[data-active="story"] .cp-toggle-thumb {
   transform: translateX(calc(100% + 0.25rem));
 }
 .cp-toggle[data-active="none"] .cp-toggle-thumb {

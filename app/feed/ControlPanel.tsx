@@ -67,22 +67,22 @@ export function ControlPanel({
           <button
             type="button"
             className="cp-toggle-opt"
-            data-on={mode === "story"}
-            onClick={() => onMode("story")}
-            aria-label="By date of story"
-            title="By date of story"
-          >
-            <CalendarIcon />
-          </button>
-          <button
-            type="button"
-            className="cp-toggle-opt"
             data-on={mode === "recent"}
             onClick={() => onMode("recent")}
             aria-label="Most recent"
             title="Most recent"
           >
             <RecentIcon />
+          </button>
+          <button
+            type="button"
+            className="cp-toggle-opt"
+            data-on={mode === "story"}
+            onClick={() => onMode("story")}
+            aria-label="By date of story"
+            title="By date of story"
+          >
+            <CalendarIcon />
           </button>
         </div>
         <button

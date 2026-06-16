@@ -22,8 +22,8 @@ import { READ_ONLY } from "@/lib/site";
  */
 export function Feed({ posts }: { posts: FeedPost[] }) {
   const [filter, setFilter] = useState<FilterKey>("all");
-  // Default ordering is by the memory's own date, not its upload time.
-  const [mode, setMode] = useState<SortMode>("story");
+  // Default ordering is by most recent submission (upload time).
+  const [mode, setMode] = useState<SortMode>("recent");
   const [dir, setDir] = useState<SortDir>("desc");
   const [open, setOpen] = useState(false);
   const [dirty, setDirty] = useState(false);
