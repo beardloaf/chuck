@@ -128,6 +128,43 @@ export async function saveUpload(file: File): Promise<SavedFile> {
   return { url: `/${key}`, type, mime, size: buf.length };
 }
 
+/**
+ * Convert a HEIC/HEIF file that was already uploaded to Blob into a JPEG: fetch
+ * it, transcode with heic-convert, store the JPEG, and best-effort delete the
+ * original. Returns the new URL+mime, or null if anything fails (caller keeps
+ * the original). Used by /api/posts for client-direct HEIC uploads.
+ */
+export async function convertRemoteHeicToJpeg(
+  url: string,
+): Promise<{ url: string; mime: string } | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const input = Buffer.from(await res.arrayBuffer());
+    const heicConvert = (await import("heic-convert")).default;
+    const out = Buffer.from(
+      await heicConvert({ buffer: input, format: "JPEG", quality: 0.9 }),
+    );
+    const now = new Date();
+    const key = `uploads/${now.getUTCFullYear()}/${String(
+      now.getUTCMonth() + 1,
+    ).padStart(2, "0")}/${randomUUID()}.jpg`;
+    const { put, del } = await import("@vercel/blob");
+    const saved = await put(key, out, {
+      access: "public",
+      contentType: "image/jpeg",
+    });
+    try {
+      await del(url);
+    } catch {
+      /* best-effort cleanup of the original HEIC */
+    }
+    return { url: saved.url, mime: "image/jpeg" };
+  } catch {
+    return null;
+  }
+}
+
 export class StorageError extends Error {
   status: number;
   constructor(message: string, status = 400) {

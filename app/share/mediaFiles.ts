@@ -13,9 +13,12 @@ export async function filesToAttachments(
   const arr = Array.from(files);
   const out: Attachment[] = [];
   for (const f of arr) {
+    // Best-effort client conversion; if it fails the raw HEIC is kept and the
+    // server converts it on upload (so the photo is never silently dropped).
     const converted = await maybeConvertHeic(f);
-    if (!converted) continue;
-    const isImage = converted.type.startsWith("image/");
+    const isImage =
+      converted.type.startsWith("image/") ||
+      /\.(heic|heif)$/i.test(converted.name);
     const isVideo = converted.type.startsWith("video/");
     if (!isImage && !isVideo) continue;
     // Shrink large photos in the browser so the upload stays under the server's
@@ -69,8 +72,13 @@ async function compressImageFile(file: File): Promise<File> {
   }
 }
 
-/** HEIC/HEIF → JPEG. Returns the original file for everything else. */
-export async function maybeConvertHeic(file: File): Promise<File | null> {
+/**
+ * HEIC/HEIF → JPEG (best effort, in-browser via heic2any). Returns the original
+ * file for everything else, and — crucially — returns the original HEIC
+ * untouched if conversion fails, so the caller can still upload it and let the
+ * server convert it. Never drops the file.
+ */
+export async function maybeConvertHeic(file: File): Promise<File> {
   const isHeic =
     /image\/hei[cf]/i.test(file.type) || /\.(heic|heif)$/i.test(file.name);
   if (!isHeic) return file;
@@ -85,9 +93,9 @@ export async function maybeConvertHeic(file: File): Promise<File | null> {
     const name = file.name.replace(/\.(heic|heif)$/i, ".jpg") || "photo.jpg";
     return new File([blob], name, { type: "image/jpeg" });
   } catch {
-    // Conversion failed (e.g. unsupported HEIC variant) — skip the file
-    // rather than uploading something the feed can't display.
-    return null;
+    // Couldn't convert in the browser (common — heic2any fails on many real
+    // iPhone HEICs). Keep the original; the server converts it on upload.
+    return file;
   }
 }
 

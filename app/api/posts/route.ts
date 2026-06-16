@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { db, schema } from "@/lib/db";
 import { desc, eq, lt, and, inArray } from "drizzle-orm";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
-import { saveUpload, StorageError } from "@/lib/storage";
+import { saveUpload, StorageError, convertRemoteHeicToJpeg } from "@/lib/storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -128,14 +128,27 @@ export async function POST(req: Request) {
   // Media already uploaded to our Vercel Blob store by the client. Only accept
   // URLs that point at our blob storage (forged ones are also gated by review).
   for (let i = 0; i < blobUrls.length; i++) {
-    const url = blobUrls[i];
+    let url = blobUrls[i];
     const type = blobTypes[i];
+    let mime = blobMimes[i] || "application/octet-stream";
     // Vercel Blob public URLs are https://<store>.public.blob.vercel-storage.com/…
     // — the host has a dotted ".public." label, so allow dots in the subdomain
     // (the old [\w-]+ only matched a single label and rejected every real URL,
     // silently dropping the media so posts saved with no attachments).
     if (!/^https:\/\/[a-z0-9.-]+\.blob\.vercel-storage\.com\//i.test(url)) continue;
     if (type !== "audio" && type !== "image" && type !== "video") continue;
+    // The browser couldn't convert this HEIC, so it uploaded the original —
+    // transcode it to JPEG server-side so the feed can display it.
+    if (
+      type === "image" &&
+      (/image\/hei[cf]/i.test(mime) || /\.(heic|heif)(?:\?|$)/i.test(url))
+    ) {
+      const conv = await convertRemoteHeicToJpeg(url);
+      if (conv) {
+        url = conv.url;
+        mime = conv.mime;
+      }
+    }
     let peaks: number[] | undefined;
     if (type === "audio" && peaksRaw[i]) {
       try {
@@ -148,7 +161,7 @@ export async function POST(req: Request) {
     saved.push({
       url,
       type,
-      mime: blobMimes[i] || "application/octet-stream",
+      mime,
       size: 0,
       durationMs: durations[i] ?? undefined,
       width: widths[i] ?? undefined,

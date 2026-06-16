@@ -586,6 +586,21 @@ p, span, li, label, input, textarea, button.body, .body {
   object-fit: cover;
   display: block;
 }
+/* HEIC preview that the browser can't render → neutral "photo" placeholder
+   (the image still converts + uploads server-side). */
+.media-grid-item[data-noimg="true"]::after {
+  content: "HEIC";
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  background: var(--bg-soft);
+}
 .media-grid-audio {
   position: absolute;
   inset: 0;

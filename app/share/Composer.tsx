@@ -480,7 +480,17 @@ function MediaThumb({ a, onRemove }: { a: Attachment; onRemove: () => void }) {
     <div className="media-grid-item">
       {a.type === "image" ? (
         /* eslint-disable-next-line @next/next/no-img-element */
-        <img src={a.previewUrl} alt="" />
+        <img
+          src={a.previewUrl}
+          alt=""
+          onError={(e) => {
+            // Some browsers (e.g. desktop Chrome) can't render a HEIC preview;
+            // it still converts + uploads fine, so show a neutral placeholder.
+            const el = e.currentTarget;
+            el.style.display = "none";
+            el.parentElement?.setAttribute("data-noimg", "true");
+          }}
+        />
       ) : a.type === "video" ? (
         <video src={a.previewUrl} muted playsInline preload="metadata" />
       ) : (
