@@ -11,7 +11,7 @@ export function Intro({ open }: { open?: boolean }) {
     <div className="intro-wrap" data-open={open ? "true" : "false"}>
       <div className="intro-wrap-inner" inert={!open}>
         <section className="intro" aria-label="About Charles Mikula">
-          <p className="intro-eyebrow">1964 — 2026</p>
+          <p className="intro-eyebrow">1962 — 2026</p>
           <div className="intro-cols">
             <h2 className="intro-lead">
               Charles “Chuck” Mikula was a charming storyteller, a playful and
