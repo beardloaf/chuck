@@ -132,7 +132,6 @@ export function Feed({
           onToggleDir={() => setDir((d) => (d === "desc" ? "asc" : "desc"))}
           onAdd={() => setOpen(true)}
         />
-        {showCelebration && <EventTile />}
         {pending && <Tile key={pending.id} post={pending} pending />}
         {displayed.map((p) => (
           <Tile key={p.id} post={p} />
@@ -145,6 +144,8 @@ export function Feed({
           </p>
         )}
       </div>
+
+      {showCelebration && <EventTile show={!scrolled && !open} />}
 
       {!READ_ONLY && (
         <>

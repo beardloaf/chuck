@@ -2,29 +2,36 @@ import { CELEBRATION as E } from "@/lib/event";
 import { asset } from "@/lib/site";
 
 /**
- * Pinned feed cell for the celebration-of-life gathering, printed as a 1990s
- * hard ticket: guilloche security weave, torn stubs down both edges, the band
- * wordmark over a condensed-caps headline, and the date block divided from the
- * venue column by a heavy rule.
+ * The celebration-of-life ticket, docked at the bottom of the feed rather than
+ * occupying a cell in it — so the grid stays nothing but memories.
  *
- * It spans two grid columns and keeps the 880 × 428 proportions of the design,
- * scaling as one object via container units; below the two-column breakpoint it
- * drops the stubs and stacks (see `.event-ticket` in globals.css).
+ * At rest it peeks up from the bottom edge at a slight tilt. Hovering brings the
+ * whole ticket up, straightens it and holds it 20px clear of the edge; the
+ * pointer leaving drops it back. `show` is false once the page is scrolled, at
+ * which point it drops away entirely and the floating "Add a memory" button
+ * takes the same band — the two never share it.
  *
- * The ticket leaves the site, so it renders as a plain external <a>.
+ * Sizing is unchanged from the in-grid version: the interior is expressed in
+ * container units, so narrowing the ticket to dock width scales the whole thing
+ * as one object with no separate small-size layout.
+ *
+ * It leaves the site, so it renders as a plain external <a>.
  */
-export function EventTile() {
-  // The wordmark is a black-and-white plate used as a luminance mask, so the
-  // ink colour comes from CSS. Set here (not in the stylesheet) so the URL goes
-  // through asset() and survives a sub-path deployment.
-  const mark = { WebkitMaskImage: `url(${asset("/mikula-ink.png")})`, maskImage: `url(${asset("/mikula-ink.png")})` };
+export function EventTile({ show }: { show?: boolean }) {
+  const mark = {
+    WebkitMaskImage: `url(${asset("/mikula-ink.png")})`,
+    maskImage: `url(${asset("/mikula-ink.png")})`,
+  };
 
   return (
     <a
       href={E.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="tile-link event-link"
+      className="event-dock"
+      data-show={show ? "true" : "false"}
+      aria-hidden={!show}
+      tabIndex={show ? 0 : -1}
       aria-label={`${E.headline} for Charles Mikula — ${E.monthAbbr} ${E.dayOfMonth} ${E.year}, ${E.time}, at ${E.venue}, ${E.town}. RSVP on Partiful, opens in a new tab.`}
     >
       <article className="tile event-ticket">
