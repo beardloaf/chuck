@@ -105,17 +105,25 @@ export function Composer({
 
   // Safety net: clear the drop overlay whenever a drag ends or a drop lands
   // anywhere — the inner picker stops propagation, so the form's onDrop may not
-  // fire, which previously left the "Drop to add media" overlay stuck.
+  // fire, which would otherwise leave the "Drop to add media" overlay stuck.
+  //
+  // Both listeners are capture-phase, and that is the whole point. React binds
+  // its own listener at the root container, so the picker's stopPropagation()
+  // halts the native event there — well below window — and a bubble-phase
+  // listener here never runs. Capture fires on the way down instead, before
+  // anything can stop it. (`dragend` only fires for drags that started inside
+  // the page; a file dragged in from the OS has no in-page source, so `drop`
+  // is what actually saves us there.)
   useEffect(() => {
     const clear = () => {
       dragDepth.current = 0;
       setDropActive(false);
     };
-    window.addEventListener("drop", clear);
-    window.addEventListener("dragend", clear);
+    window.addEventListener("drop", clear, true);
+    window.addEventListener("dragend", clear, true);
     return () => {
-      window.removeEventListener("drop", clear);
-      window.removeEventListener("dragend", clear);
+      window.removeEventListener("drop", clear, true);
+      window.removeEventListener("dragend", clear, true);
     };
   }, []);
 
