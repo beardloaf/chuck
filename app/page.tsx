@@ -3,6 +3,7 @@ import { desc, eq, inArray } from "drizzle-orm";
 import { Feed } from "./feed/Feed";
 import type { FeedPost } from "./feed/Tile";
 import { asset, displayUrl } from "@/lib/site";
+import { isCelebrationOver } from "@/lib/event";
 
 // Rendered at request time against the live database (Turso in production), so
 // newly approved memories show up without a rebuild.
@@ -61,7 +62,7 @@ export default async function HomePage() {
 
   return (
     <div className="w-full">
-      <Feed posts={items} />
+      <Feed posts={items} showCelebration={!isCelebrationOver()} />
     </div>
   );
 }
