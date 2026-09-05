@@ -23,4 +23,21 @@ export const CELEBRATION = {
   terms: ["Admits one", "Beers + tears", "No charge"],
   /** Serial down the left stub: his initials and the years on the wordmark. */
   serial: "CDM19622026",
+  /**
+   * When the gathering ends. After this the ticket stops rendering and the feed
+   * grid goes back to plain square tiles — a ticket advertising a finished event
+   * is worse than no ticket. Explicit -07:00 (Pacific) so the cutoff is a real
+   * moment rather than whatever the reader's clock says.
+   */
+  endsAt: new Date("2026-09-15T15:00:00-07:00"),
 } as const;
+
+/**
+ * Whether the gathering is over. Evaluated on the server (the feed page is
+ * force-dynamic, so this re-runs every request) and passed down as a boolean —
+ * checking the clock in the browser instead would risk the server and client
+ * disagreeing across the cutoff, and would trust the reader's system time.
+ */
+export function isCelebrationOver(now: number = Date.now()): boolean {
+  return now >= CELEBRATION.endsAt.getTime();
+}

@@ -21,7 +21,14 @@ import { READ_ONLY } from "@/lib/site";
  * sort direction (desc / asc), and the add-story sheet. The control module is
  * the first grid cell so tiles flow around it, Azuki-style.
  */
-export function Feed({ posts }: { posts: FeedPost[] }) {
+export function Feed({
+  posts,
+  showCelebration,
+}: {
+  posts: FeedPost[];
+  /** False once the gathering is over — see lib/event.ts. */
+  showCelebration?: boolean;
+}) {
   const [filter, setFilter] = useState<FilterKey>("all");
   // Default ordering is by most recent submission (upload time).
   const [mode, setMode] = useState<SortMode>("recent");
@@ -125,7 +132,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
           onToggleDir={() => setDir((d) => (d === "desc" ? "asc" : "desc"))}
           onAdd={() => setOpen(true)}
         />
-        <EventTile />
+        {showCelebration && <EventTile />}
         {pending && <Tile key={pending.id} post={pending} pending />}
         {displayed.map((p) => (
           <Tile key={p.id} post={p} />
