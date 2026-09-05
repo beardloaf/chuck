@@ -1348,6 +1348,13 @@ p, span, li, label, input, textarea, button.body, .body {
   opacity: 1;
   transform: none;
 }
+/* .fab re-enables pointer events inside a zone that disables them, so a hidden
+   button still swallowed clicks over its footprint. Harmless while nothing sat
+   underneath; now the celebration ticket docks in the same band, and its middle
+   would have opened the composer instead of the invite. */
+.fab-zone:not([data-show="true"]) .fab {
+  pointer-events: none;
+}
 /* Docked at the bottom of the page: just fade the gradient out. The button
    stays exactly where it is (no jump / re-centering). */
 .fab-zone[data-docked="true"]::before {
@@ -2715,9 +2722,13 @@ button.reset {
    units, so setting the width scales the whole object, and the height follows
    from the 880:428 ratio (2.0561). */
 .event-dock {
-  --dock-w: min(387px, calc(100vw - 2rem));
+  /* Wider than one grid column (427px at 1440) so it breaks into the two
+     either side rather than sitting politely inside the middle one. */
+  --dock-w: min(560px, calc(100vw - 2rem));
   --dock-h: calc(var(--dock-w) / 2.0561);
-  --dock-peek: clamp(88px, 29vw, 112px);
+  /* A share of the height, not a fixed px, so the cut lands in the same place
+     at every size: just under the heavy rule below the headline. */
+  --dock-peek: calc(var(--dock-h) * 0.59);
   --dock-tilt: -3.5deg;
 
   position: fixed;
@@ -2734,6 +2745,31 @@ button.reset {
   transform: rotate(var(--dock-tilt));
   transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease;
 }
+/* Rises into place once on load. Fill mode is `backwards`, not `both`: the
+   animation holds the offscreen position through the delay, then hands the
+   property back to the base rule above (whose transform is identical to the
+   final frame) so the hover transition still works afterwards. `both` would
+   leave the animation owning transform forever and kill the hover. */
+@keyframes event-dock-in {
+  from {
+    transform: translateY(calc(var(--dock-peek) + 24px)) rotate(var(--dock-tilt));
+    opacity: 0;
+  }
+  to {
+    transform: rotate(var(--dock-tilt));
+    opacity: 1;
+  }
+}
+.event-dock {
+  animation: event-dock-in 820ms cubic-bezier(0.65, 0, 0.35, 1) 350ms backwards;
+}
+
+/* A soft, wide shadow so the ticket reads as lying over the feed rather than
+   pasted onto it. On the ticket itself, since the dock is the rotating box. */
+.event-dock .tile {
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.62), 0 8px 22px rgba(0, 0, 0, 0.38);
+}
+
 .event-dock:hover,
 .event-dock:focus-visible {
   transform: translateY(calc(-1 * (var(--dock-h) - var(--dock-peek) + 20px))) rotate(0deg);
@@ -2744,6 +2780,7 @@ button.reset {
 }
 /* Scrolled away — the add button's slot now. */
 .event-dock[data-show="false"] {
+  animation: none;
   transform: translateY(calc(var(--dock-peek) + 24px)) rotate(var(--dock-tilt));
   opacity: 0;
   pointer-events: none;
@@ -2751,7 +2788,7 @@ button.reset {
 /* .tile's own hover lift would fight the dock's; the dock owns the motion. */
 .event-dock .tile:hover {
   transform: none;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.62), 0 8px 22px rgba(0, 0, 0, 0.38);
 }
 
 
@@ -3058,4 +3095,8 @@ button.reset {
   .et-facts span { font-size: calc(var(--dock-w) * 0.025000); }
   .et-rsvp { gap: calc(var(--dock-w) * 0.003000); padding-top: calc(var(--dock-w) * 0.012000); padding-bottom: calc(var(--dock-w) * 0.019000); border-top: calc(var(--dock-w) * 0.003400) solid #14181a; font-size: calc(var(--dock-w) * 0.041000); }
   .et-rsvp-arrow { font-size: calc(var(--dock-w) * 0.084000); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-dock { animation: none; }
 }
