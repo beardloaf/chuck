@@ -945,8 +945,8 @@ p, span, li, label, input, textarea, button.body, .body {
   font-weight: 400; /* regular */
   text-transform: none; /* override the global ALL-CAPS heading rule */
   letter-spacing: normal; /* standard tracking */
-  font-size: clamp(1.25rem, 0.85rem + 1.6vw, 2.15rem);
-  line-height: 1.2;
+  font-size: clamp(1.1rem, 0.8rem + 1.15vw, 1.7rem);
+  line-height: 1.25;
   color: #1a1a1a;
   margin: 0;
 }
@@ -963,14 +963,82 @@ p, span, li, label, input, textarea, button.body, .body {
 .intro-body em {
   font-style: italic;
 }
-/* Desktop: lead and body share the same width (aligned), negative space right.
-   The width is 42% at ≥1440px and widens toward 100% as the viewport narrows
-   (~+10% per 100px). The 100% cap keeps the card padding/margins intact. */
-@media (min-width: 768px) {
+/* Between the stacked phone layout and the two-column one, the text keeps its
+   old measure: 42% at ≥1440px, widening toward 100% as the viewport narrows. */
+@media (min-width: 768px) and (max-width: 1023px) {
   .intro-lead,
   .intro-body {
     max-width: clamp(42%, calc(42% + (1440px - 100vw) * 0.84), 100%);
   }
+}
+
+/* ---- Intro photo panel ---- */
+
+.intro-text {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 1rem + 1.5vw, 2.25rem);
+  min-width: 0;
+}
+
+/* A button, so the whole photo is clickable and reachable by keyboard. */
+.intro-photos {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.intro-photos:focus-visible {
+  outline: 2px solid #1a1a1a;
+  outline-offset: 6px;
+  border-radius: 50%;
+}
+
+.intro-photo-frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #c9c4bc;
+}
+.intro-photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 340ms ease;
+  user-select: none;
+}
+.intro-photo[data-active="true"] { opacity: 1; }
+
+/* Two columns once there's room for one: text keeps its measure on the left,
+   photos sit against the right edge in the space the layout already left empty. */
+@media (min-width: 1024px) {
+  .intro-cols {
+    flex-direction: row;
+    /* Text and photo centre against each other — the circle is much taller
+       than the copy, so top-aligning left the text stranded at the top. */
+    align-items: center;
+    gap: clamp(2rem, 1rem + 3vw, 4.5rem);
+  }
+  .intro-text { flex: 0 1 clamp(400px, 44%, 640px); }
+  .intro-photos {
+    flex: 0 1 auto;
+    margin-left: auto;
+  }
+}
+
+/* The fade is the movement this setting is about; clicking still works. */
+@media (prefers-reduced-motion: reduce) {
+  .intro-photo { transition: none; }
 }
 
 .gallery {
@@ -2628,4 +2696,451 @@ button.reset {
   outline: 2px solid var(--ink);
   outline-offset: 3px;
   border-radius: 4px;
+}
+
+/* ---------------------- Celebration-of-life hard ticket ------------------ */
+
+/* Pinned feed cell printed as a 1990s hard ticket. It spans two grid columns
+   and holds the design's 880 × 428 proportions, so at three columns it lands
+   almost exactly one tile-row tall. Every interior size is expressed in cqw
+   against the ticket's own width, so the whole thing scales as one printed
+   object rather than reflowing. Reference width is 880px: 1cqw = 8.8px. */
+.event-link { grid-column: span 2; min-width: 0; }
+
+.event-ticket {
+  container-type: inline-size;
+  aspect-ratio: 880 / 428;
+  display: flex;
+  align-items: stretch;
+  background: #cfdcd2;
+  color: #14181a;
+  /* A ticket is a physical object — it stays paper in either theme. */
+  font-family: var(--font-condensed), "Arial Narrow", Arial, sans-serif;
+  letter-spacing: normal;
+}
+
+/* Guilloche security weave. */
+.event-ticket::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    repeating-linear-gradient(45deg, rgba(20, 40, 28, 0.13) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(-45deg, rgba(20, 40, 28, 0.13) 0 1px, transparent 1px 9px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ---- Wear: this is a thirty-year-old paper ticket, not a fresh print ----
+   Two layers. The weave sits under the content (z 0); the wear sits over it
+   (z 2) and multiplies, so grain and foxing fall across the printed ink and
+   the torn stubs alike, the way they would on real card. Alphas are
+   deliberately low — this has to read as age, not as dirt on the screen. */
+.event-ticket::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  background-image:
+    /* paper grain */
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27160%27%20height%3D%27160%27%3E%3Cfilter%20id%3D%27n%27%3E%3CfeTurbulence%20type%3D%27fractalNoise%27%20baseFrequency%3D%270.85%27%20numOctaves%3D%274%27%20stitchTiles%3D%27stitch%27%2F%3E%3CfeColorMatrix%20type%3D%27saturate%27%20values%3D%270%27%2F%3E%3C%2Ffilter%3E%3Crect%20width%3D%27160%27%20height%3D%27160%27%20filter%3D%27url%28%23n%29%27%20opacity%3D%270.42%27%2F%3E%3C%2Fsvg%3E"),
+    /* foxing — age spots, warm and soft-edged */
+    radial-gradient(38% 46% at 12% 22%, rgba(122, 96, 48, 0.17) 0%, rgba(122, 96, 48, 0) 70%),
+    radial-gradient(30% 40% at 88% 78%, rgba(110, 84, 44, 0.16) 0%, rgba(110, 84, 44, 0) 72%),
+    radial-gradient(22% 34% at 63% 8%, rgba(96, 78, 42, 0.13) 0%, rgba(96, 78, 42, 0) 68%),
+    radial-gradient(18% 28% at 34% 92%, rgba(104, 82, 46, 0.13) 0%, rgba(104, 82, 46, 0) 66%),
+    /* handled edges */
+    radial-gradient(126% 148% at 50% 50%, rgba(20, 40, 28, 0) 56%, rgba(20, 40, 28, 0.13) 100%);
+  background-size: 160px 160px, auto, auto, auto, auto, auto;
+  background-repeat: repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+
+/* Softened, uneven edge — the card has been in a pocket. */
+.event-ticket {
+  box-shadow:
+    var(--shadow-sm),
+    inset 0 0 0 1px rgba(20, 40, 28, 0.07),
+    inset 0 2px 5px rgba(20, 40, 28, 0.05);
+}
+
+/* ---- Torn stubs ---- */
+
+.et-stub {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  background: #f3f2ec;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.et-stub-left {
+  width: 7.95cqw;
+  border-right: 1px dashed #7e8c82;
+}
+.et-stub-right {
+  width: 17.05cqw;
+  border-left: 1px dashed #7e8c82;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 0 1.6cqw;
+}
+
+/* The terms block is pinned to the height of the ticket above the heavy rule
+   under the headline (54.96% — constant, since the ticket holds a fixed aspect
+   ratio), so the stub's divider lands on exactly the same line. */
+.et-terms {
+  height: 54.96%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.7cqw;
+  padding-top: 1.9cqw;
+}
+.et-serial {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: 1.82cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: #46514a;
+  white-space: nowrap;
+}
+.et-term {
+  font-size: 1.82cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  text-align: left;
+}
+
+/* ---- Wordmark: a black/white plate used as a luminance mask ---- */
+
+.et-mark {
+  background-color: #14181a;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.et-main > .et-mark {
+  width: 16.8cqw;
+  height: 9.66cqw;
+  margin: 0.7cqw 0 0.25cqw;
+}
+
+/* ---- Body of the ticket ---- */
+
+.et-main {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.82cqw 2.95cqw;
+}
+.et-presenter,
+.et-stars {
+  margin: 0;
+  font-size: 1.82cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+}
+.et-stars {
+  margin-top: 0.45cqw;
+  letter-spacing: 0.3em;
+  text-transform: none;
+}
+.et-headline {
+  margin: 0.45cqw 0 0;
+  font-size: 7.73cqw;
+  font-weight: 700;
+  line-height: 0.96;
+  letter-spacing: -0.025em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.et-rule {
+  width: 100%;
+  height: 0.34cqw;
+  background: #14181a;
+  margin-top: 1.14cqw;
+}
+
+.et-info {
+  display: flex;
+  align-items: stretch;
+  gap: 2.27cqw;
+  width: 100%;
+  margin-top: 1.36cqw;
+}
+.et-date {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-right: 2.27cqw;
+  border-right: 0.34cqw solid #14181a;
+}
+.et-date-month {
+  font-size: 2.73cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  line-height: 1;
+}
+.et-date-day {
+  font-size: 8.18cqw;
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.035em;
+}
+.et-date-year {
+  font-size: 2.5cqw;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+}
+.et-where {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.23cqw;
+}
+.et-where p {
+  margin: 0;
+  font-size: 2.27cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.et-facts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 1.82cqw;
+}
+.et-facts span {
+  font-size: 2.5cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+/* ---- The call to action, carried on the right stub ---- */
+
+.et-rsvp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3cqw;
+  width: 100%;
+  flex: 1;
+  justify-content: flex-end;
+  margin-top: 0;
+  padding-top: 1.2cqw;
+  padding-bottom: 1.9cqw;
+  border-top: 0.34cqw solid #14181a;
+  font-size: 4.1cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+.et-rsvp-arrow {
+  /* Inter Tight, not the ticket's condensed face — a lighter, rounder arrow
+     against the heavy Archivo caps. */
+  font-family: var(--font-display);
+  font-size: 8.4cqw;
+  font-weight: 400;
+  line-height: 0.9;
+}
+
+/* ---- Single-column feed: 880px of ticket doesn't fit a phone, so the ticket
+        turns on its side — the left stub tears off, the body stacks as a square
+        tile like its neighbours, and the right stub becomes a footer strip so
+        the RSVP is still visible (hiding it outright left no call to action). -- */
+@media (max-width: 639px) {
+  .event-link { grid-column: auto; }
+  .event-ticket { aspect-ratio: 1 / 1; flex-direction: column; }
+
+  .et-stub-left { display: none; }
+  .et-stub-right {
+    width: 100%;
+    flex: none;
+    flex-direction: row;
+    justify-content: center;
+    gap: 0;
+    padding: 2.4cqw;
+    border-left: 0;
+    border-top: 1px dashed #7e8c82;
+  }
+  .et-terms { display: none; }
+  /* The footer strip has to stay thin, so the arrow sits beside the word here
+     rather than under it as it does on the full-width stub. */
+  .et-rsvp {
+    flex-direction: row;
+    flex: none;
+    justify-content: center;
+    width: auto;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-top: 0;
+    font-size: 5.4cqw;
+    gap: 1.4cqw;
+  }
+  .et-rsvp-arrow { font-size: 6cqw; }
+
+  .et-main { flex: 1; min-height: 0; padding: 3.2cqw 5cqw; }
+  .et-presenter, .et-stars { font-size: 3.1cqw; }
+  .et-main > .et-mark { width: 30cqw; height: 17.2cqw; margin: 2cqw 0 0.6cqw; }
+  .et-headline {
+    font-size: 10cqw;
+    white-space: normal;
+    text-align: center;
+    line-height: 0.92;
+  }
+  .et-rule { height: 0.8cqw; margin-top: 2.4cqw; }
+  .et-info { gap: 4.5cqw; margin-top: 2.4cqw; }
+  .et-date { padding-right: 4.5cqw; border-right-width: 0.8cqw; }
+  .et-date-month { font-size: 4.4cqw; }
+  .et-date-day { font-size: 13cqw; }
+  .et-date-year { font-size: 4cqw; }
+  .et-where p { font-size: 3.6cqw; }
+  .et-facts { margin-top: 2.4cqw; }
+  .et-facts span { font-size: 3.1cqw; }
+}
+
+/* ---- Fallback for browsers without container queries (pre-Safari 16 / iOS 16,
+        Chrome <105, Firefox <110) --------------------------------------------
+   The ticket sizes its interior in cqw against its own width. Where that isn't
+   supported every one of those declarations is dropped and the type collapses
+   to inherited sizes, which looks broken rather than merely plain.
+   The ticket's width is still predictable — it's a fixed share of the grid — so
+   this restates the same values in vw at the measured ratio for each column
+   count. Rendering is near-identical; it just can't respond to anything but the
+   viewport. Nothing here runs in a browser that supports container queries. */
+@supports not (container-type: inline-size) {
+
+  /* one column — 1cqw ≈ 0.893vw */
+  @media (max-width: 639px) {
+    .et-stub-right { padding: 2.1432vw; }
+    .et-rsvp { font-size: 4.8222vw; gap: 1.2502vw; }
+    .et-rsvp-arrow { font-size: 5.358vw; }
+    .et-main { padding: 2.8576vw 4.465vw; }
+    .et-presenter, .et-stars { font-size: 2.7683vw; }
+    .et-main > .et-mark { width: 26.79vw; height: 15.3596vw; margin: 1.786vw 0 0.5358vw; }
+    .et-headline { font-size: 8.93vw; }
+    .et-rule { height: 0.7144vw; margin-top: 2.1432vw; }
+    .et-info { gap: 4.0185vw; margin-top: 2.1432vw; }
+    .et-date { padding-right: 4.0185vw; border-right-width: 0.7144vw; }
+    .et-date-month { font-size: 3.9292vw; }
+    .et-date-day { font-size: 11.609vw; }
+    .et-date-year { font-size: 3.572vw; }
+    .et-where p { font-size: 3.2148vw; }
+    .et-facts { margin-top: 2.1432vw; }
+    .et-facts span { font-size: 2.7683vw; }
+  }
+
+  /* two columns — the ticket spans the full row — 1cqw ≈ 0.928vw */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .et-stub-left { width: 7.3776vw; }
+    .et-stub-right { width: 15.8224vw; padding: 0 1.4848vw; }
+    .et-terms { gap: 0.6496vw; padding-top: 1.7632vw; }
+    .et-serial { font-size: 1.689vw; }
+    .et-term { font-size: 1.689vw; }
+    .et-main > .et-mark { width: 15.5904vw; height: 8.9645vw; margin: 0.6496vw 0 0.232vw; }
+    .et-main { padding: 1.689vw 2.7376vw; }
+    .et-presenter,
+.et-stars { font-size: 1.689vw; }
+    .et-stars { margin-top: 0.4176vw; }
+    .et-headline { margin: 0.4176vw 0 0; font-size: 7.1734vw; }
+    .et-rule { height: 0.3155vw; margin-top: 1.0579vw; }
+    .et-info { gap: 2.1066vw; margin-top: 1.2621vw; }
+    .et-date { padding-right: 2.1066vw; border-right: 0.3155vw solid #14181a; }
+    .et-date-month { font-size: 2.5334vw; }
+    .et-date-day { font-size: 7.591vw; }
+    .et-date-year { font-size: 2.32vw; }
+    .et-where { gap: 0.2134vw; }
+    .et-where p { font-size: 2.1066vw; }
+    .et-facts { margin-top: 1.689vw; }
+    .et-facts span { font-size: 2.32vw; }
+    .et-rsvp { gap: 0.2784vw; padding-top: 1.1136vw; padding-bottom: 1.7632vw; border-top: 0.3155vw solid #14181a; font-size: 3.8048vw; }
+    .et-rsvp-arrow { font-size: 7.7952vw; }
+  }
+
+  /* three columns — 1cqw ≈ 0.619vw */
+  @media (min-width: 1024px) and (max-width: 1599px) {
+    .et-stub-left { width: 4.9211vw; }
+    .et-stub-right { width: 10.554vw; padding: 0 0.9904vw; }
+    .et-terms { gap: 0.4333vw; padding-top: 1.1761vw; }
+    .et-serial { font-size: 1.1266vw; }
+    .et-term { font-size: 1.1266vw; }
+    .et-main > .et-mark { width: 10.3992vw; height: 5.9795vw; margin: 0.4333vw 0 0.1547vw; }
+    .et-main { padding: 1.1266vw 1.8261vw; }
+    .et-presenter,
+.et-stars { font-size: 1.1266vw; }
+    .et-stars { margin-top: 0.2786vw; }
+    .et-headline { margin: 0.2786vw 0 0; font-size: 4.7849vw; }
+    .et-rule { height: 0.2105vw; margin-top: 0.7057vw; }
+    .et-info { gap: 1.4051vw; margin-top: 0.8418vw; }
+    .et-date { padding-right: 1.4051vw; border-right: 0.2105vw solid #14181a; }
+    .et-date-month { font-size: 1.6899vw; }
+    .et-date-day { font-size: 5.0634vw; }
+    .et-date-year { font-size: 1.5475vw; }
+    .et-where { gap: 0.1424vw; }
+    .et-where p { font-size: 1.4051vw; }
+    .et-facts { margin-top: 1.1266vw; }
+    .et-facts span { font-size: 1.5475vw; }
+    .et-rsvp { gap: 0.1857vw; padding-top: 0.7428vw; padding-bottom: 1.1761vw; border-top: 0.2105vw solid #14181a; font-size: 2.5379vw; }
+    .et-rsvp-arrow { font-size: 5.1996vw; }
+  }
+
+  /* four columns — 1cqw ≈ 0.462vw */
+  @media (min-width: 1600px) {
+    .et-stub-left { width: 3.6729vw; }
+    .et-stub-right { width: 7.8771vw; padding: 0 0.7392vw; }
+    .et-terms { gap: 0.3234vw; padding-top: 0.8778vw; }
+    .et-serial { font-size: 0.8408vw; }
+    .et-term { font-size: 0.8408vw; }
+    .et-main > .et-mark { width: 7.7616vw; height: 4.4629vw; margin: 0.3234vw 0 0.1155vw; }
+    .et-main { padding: 0.8408vw 1.3629vw; }
+    .et-presenter,
+.et-stars { font-size: 0.8408vw; }
+    .et-stars { margin-top: 0.2079vw; }
+    .et-headline { margin: 0.2079vw 0 0; font-size: 3.5713vw; }
+    .et-rule { height: 0.1571vw; margin-top: 0.5267vw; }
+    .et-info { gap: 1.0487vw; margin-top: 0.6283vw; }
+    .et-date { padding-right: 1.0487vw; border-right: 0.1571vw solid #14181a; }
+    .et-date-month { font-size: 1.2613vw; }
+    .et-date-day { font-size: 3.7792vw; }
+    .et-date-year { font-size: 1.155vw; }
+    .et-where { gap: 0.1063vw; }
+    .et-where p { font-size: 1.0487vw; }
+    .et-facts { margin-top: 0.8408vw; }
+    .et-facts span { font-size: 1.155vw; }
+    .et-rsvp { gap: 0.1386vw; padding-top: 0.5544vw; padding-bottom: 0.8778vw; border-top: 0.1571vw solid #14181a; font-size: 1.8942vw; }
+    .et-rsvp-arrow { font-size: 3.8808vw; }
+  }
 }

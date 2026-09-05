@@ -51,3 +51,6 @@ next-env.d.ts
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
 .claude/scheduled_tasks.json
+
+# intro photo originals (compressed into public/intro by npm run intro:photos)
+/intro-src

@@ -1,0 +1,22 @@
+[
+  {
+    "from": "1.png",
+    "to": "/intro/intro-1.webp",
+    "kb": 63
+  },
+  {
+    "from": "2.png",
+    "to": "/intro/intro-2.webp",
+    "kb": 121
+  },
+  {
+    "from": "3.png",
+    "to": "/intro/intro-3.webp",
+    "kb": 131
+  },
+  {
+    "from": "4.png",
+    "to": "/intro/intro-4.webp",
+    "kb": 69
+  }
+]

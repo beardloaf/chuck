@@ -13,6 +13,7 @@ import { SideSheet } from "../SideSheet";
 import { Composer } from "../share/Composer";
 import { SiteNav } from "../SiteNav";
 import { Intro } from "./Intro";
+import { EventTile } from "./EventTile";
 import { READ_ONLY } from "@/lib/site";
 
 /**
@@ -124,6 +125,7 @@ export function Feed({ posts }: { posts: FeedPost[] }) {
           onToggleDir={() => setDir((d) => (d === "desc" ? "asc" : "desc"))}
           onAdd={() => setOpen(true)}
         />
+        <EventTile />
         {pending && <Tile key={pending.id} post={pending} pending />}
         {displayed.map((p) => (
           <Tile key={p.id} post={p} />
