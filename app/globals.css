@@ -3031,3 +3031,116 @@ button.reset {
   .et-facts { margin-top: 2.4cqw; }
   .et-facts span { font-size: 3.1cqw; }
 }
+
+/* ---- Fallback for browsers without container queries (pre-Safari 16 / iOS 16,
+        Chrome <105, Firefox <110) --------------------------------------------
+   The ticket sizes its interior in cqw against its own width. Where that isn't
+   supported every one of those declarations is dropped and the type collapses
+   to inherited sizes, which looks broken rather than merely plain.
+   The ticket's width is still predictable — it's a fixed share of the grid — so
+   this restates the same values in vw at the measured ratio for each column
+   count. Rendering is near-identical; it just can't respond to anything but the
+   viewport. Nothing here runs in a browser that supports container queries. */
+@supports not (container-type: inline-size) {
+
+  /* one column — 1cqw ≈ 0.893vw */
+  @media (max-width: 639px) {
+    .et-stub-right { padding: 2.1432vw; }
+    .et-rsvp { font-size: 4.8222vw; gap: 1.2502vw; }
+    .et-rsvp-arrow { font-size: 5.358vw; }
+    .et-main { padding: 2.8576vw 4.465vw; }
+    .et-presenter, .et-stars { font-size: 2.7683vw; }
+    .et-main > .et-mark { width: 26.79vw; height: 15.3596vw; margin: 1.786vw 0 0.5358vw; }
+    .et-headline { font-size: 8.93vw; }
+    .et-rule { height: 0.7144vw; margin-top: 2.1432vw; }
+    .et-info { gap: 4.0185vw; margin-top: 2.1432vw; }
+    .et-date { padding-right: 4.0185vw; border-right-width: 0.7144vw; }
+    .et-date-month { font-size: 3.9292vw; }
+    .et-date-day { font-size: 11.609vw; }
+    .et-date-year { font-size: 3.572vw; }
+    .et-where p { font-size: 3.2148vw; }
+    .et-facts { margin-top: 2.1432vw; }
+    .et-facts span { font-size: 2.7683vw; }
+  }
+
+  /* two columns — the ticket spans the full row — 1cqw ≈ 0.928vw */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .et-stub-left { width: 7.3776vw; }
+    .et-stub-right { width: 15.8224vw; padding: 0 1.4848vw; }
+    .et-terms { gap: 0.6496vw; padding-top: 1.7632vw; }
+    .et-serial { font-size: 1.689vw; }
+    .et-term { font-size: 1.689vw; }
+    .et-main > .et-mark { width: 15.5904vw; height: 8.9645vw; margin: 0.6496vw 0 0.232vw; }
+    .et-main { padding: 1.689vw 2.7376vw; }
+    .et-presenter,
+.et-stars { font-size: 1.689vw; }
+    .et-stars { margin-top: 0.4176vw; }
+    .et-headline { margin: 0.4176vw 0 0; font-size: 7.1734vw; }
+    .et-rule { height: 0.3155vw; margin-top: 1.0579vw; }
+    .et-info { gap: 2.1066vw; margin-top: 1.2621vw; }
+    .et-date { padding-right: 2.1066vw; border-right: 0.3155vw solid #14181a; }
+    .et-date-month { font-size: 2.5334vw; }
+    .et-date-day { font-size: 7.591vw; }
+    .et-date-year { font-size: 2.32vw; }
+    .et-where { gap: 0.2134vw; }
+    .et-where p { font-size: 2.1066vw; }
+    .et-facts { margin-top: 1.689vw; }
+    .et-facts span { font-size: 2.32vw; }
+    .et-rsvp { gap: 0.2784vw; padding-top: 1.1136vw; padding-bottom: 1.7632vw; border-top: 0.3155vw solid #14181a; font-size: 3.8048vw; }
+    .et-rsvp-arrow { font-size: 7.7952vw; }
+  }
+
+  /* three columns — 1cqw ≈ 0.619vw */
+  @media (min-width: 1024px) and (max-width: 1599px) {
+    .et-stub-left { width: 4.9211vw; }
+    .et-stub-right { width: 10.554vw; padding: 0 0.9904vw; }
+    .et-terms { gap: 0.4333vw; padding-top: 1.1761vw; }
+    .et-serial { font-size: 1.1266vw; }
+    .et-term { font-size: 1.1266vw; }
+    .et-main > .et-mark { width: 10.3992vw; height: 5.9795vw; margin: 0.4333vw 0 0.1547vw; }
+    .et-main { padding: 1.1266vw 1.8261vw; }
+    .et-presenter,
+.et-stars { font-size: 1.1266vw; }
+    .et-stars { margin-top: 0.2786vw; }
+    .et-headline { margin: 0.2786vw 0 0; font-size: 4.7849vw; }
+    .et-rule { height: 0.2105vw; margin-top: 0.7057vw; }
+    .et-info { gap: 1.4051vw; margin-top: 0.8418vw; }
+    .et-date { padding-right: 1.4051vw; border-right: 0.2105vw solid #14181a; }
+    .et-date-month { font-size: 1.6899vw; }
+    .et-date-day { font-size: 5.0634vw; }
+    .et-date-year { font-size: 1.5475vw; }
+    .et-where { gap: 0.1424vw; }
+    .et-where p { font-size: 1.4051vw; }
+    .et-facts { margin-top: 1.1266vw; }
+    .et-facts span { font-size: 1.5475vw; }
+    .et-rsvp { gap: 0.1857vw; padding-top: 0.7428vw; padding-bottom: 1.1761vw; border-top: 0.2105vw solid #14181a; font-size: 2.5379vw; }
+    .et-rsvp-arrow { font-size: 5.1996vw; }
+  }
+
+  /* four columns — 1cqw ≈ 0.462vw */
+  @media (min-width: 1600px) {
+    .et-stub-left { width: 3.6729vw; }
+    .et-stub-right { width: 7.8771vw; padding: 0 0.7392vw; }
+    .et-terms { gap: 0.3234vw; padding-top: 0.8778vw; }
+    .et-serial { font-size: 0.8408vw; }
+    .et-term { font-size: 0.8408vw; }
+    .et-main > .et-mark { width: 7.7616vw; height: 4.4629vw; margin: 0.3234vw 0 0.1155vw; }
+    .et-main { padding: 0.8408vw 1.3629vw; }
+    .et-presenter,
+.et-stars { font-size: 0.8408vw; }
+    .et-stars { margin-top: 0.2079vw; }
+    .et-headline { margin: 0.2079vw 0 0; font-size: 3.5713vw; }
+    .et-rule { height: 0.1571vw; margin-top: 0.5267vw; }
+    .et-info { gap: 1.0487vw; margin-top: 0.6283vw; }
+    .et-date { padding-right: 1.0487vw; border-right: 0.1571vw solid #14181a; }
+    .et-date-month { font-size: 1.2613vw; }
+    .et-date-day { font-size: 3.7792vw; }
+    .et-date-year { font-size: 1.155vw; }
+    .et-where { gap: 0.1063vw; }
+    .et-where p { font-size: 1.0487vw; }
+    .et-facts { margin-top: 0.8408vw; }
+    .et-facts span { font-size: 1.155vw; }
+    .et-rsvp { gap: 0.1386vw; padding-top: 0.5544vw; padding-bottom: 0.8778vw; border-top: 0.1571vw solid #14181a; font-size: 1.8942vw; }
+    .et-rsvp-arrow { font-size: 3.8808vw; }
+  }
+}
