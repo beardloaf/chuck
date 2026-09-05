@@ -2799,6 +2799,9 @@ button.reset {
   align-items: stretch;
   background: #cfdcd2;
   color: #14181a;
+  /* Square corners — .tile's 20px reads as an app card; this is a printed
+     ticket, cut straight off the roll. */
+  border-radius: 0;
   /* A ticket is a physical object — it stays paper in either theme. */
   font-family: var(--font-condensed), "Arial Narrow", Arial, sans-serif;
   letter-spacing: normal;
