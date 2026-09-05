@@ -2705,7 +2705,55 @@ button.reset {
    almost exactly one tile-row tall. Every interior size is expressed in cqw
    against the ticket's own width, so the whole thing scales as one printed
    object rather than reflowing. Reference width is 880px: 1cqw = 8.8px. */
-.event-link { grid-column: span 2; min-width: 0; }
+/* The ticket docks in the floating button's bottom band instead of taking a
+   grid cell, so the feed stays nothing but memories. At rest it peeks up at a
+   slight tilt; hover lifts the whole thing straight and holds it 20px clear of
+   the edge; once the page is scrolled it drops away and the add button has the
+   band to itself.
+
+   --dock-w drives everything: the ticket's interior is sized in container
+   units, so setting the width scales the whole object, and the height follows
+   from the 880:428 ratio (2.0561). */
+.event-dock {
+  --dock-w: min(387px, calc(100vw - 2rem));
+  --dock-h: calc(var(--dock-w) / 2.0561);
+  --dock-peek: clamp(88px, 29vw, 112px);
+  --dock-tilt: -3.5deg;
+
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--dock-peek) - var(--dock-h));
+  width: var(--dock-w);
+  margin-left: calc(var(--dock-w) / -2);
+  /* Under .fab-zone (40) so the button's gradient washes the ticket out as the
+     two swap, rather than the ticket sitting on top of it mid-transition. */
+  z-index: 39;
+  text-decoration: none;
+  color: inherit;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--dock-tilt));
+  transition: transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms ease;
+}
+.event-dock:hover,
+.event-dock:focus-visible {
+  transform: translateY(calc(-1 * (var(--dock-h) - var(--dock-peek) + 20px))) rotate(0deg);
+}
+.event-dock:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 6px;
+}
+/* Scrolled away — the add button's slot now. */
+.event-dock[data-show="false"] {
+  transform: translateY(calc(var(--dock-peek) + 24px)) rotate(var(--dock-tilt));
+  opacity: 0;
+  pointer-events: none;
+}
+/* .tile's own hover lift would fight the dock's; the dock owns the motion. */
+.event-dock .tile:hover {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
 
 .event-ticket {
   container-type: inline-size;
@@ -2976,171 +3024,38 @@ button.reset {
   line-height: 0.9;
 }
 
-/* ---- Single-column feed: 880px of ticket doesn't fit a phone, so the ticket
-        turns on its side — the left stub tears off, the body stacks as a square
-        tile like its neighbours, and the right stub becomes a footer strip so
-        the RSVP is still visible (hiding it outright left no call to action). -- */
-@media (max-width: 639px) {
-  .event-link { grid-column: auto; }
-  .event-ticket { aspect-ratio: 1 / 1; flex-direction: column; }
-
-  .et-stub-left { display: none; }
-  .et-stub-right {
-    width: 100%;
-    flex: none;
-    flex-direction: row;
-    justify-content: center;
-    gap: 0;
-    padding: 2.4cqw;
-    border-left: 0;
-    border-top: 1px dashed #7e8c82;
-  }
-  .et-terms { display: none; }
-  /* The footer strip has to stay thin, so the arrow sits beside the word here
-     rather than under it as it does on the full-width stub. */
-  .et-rsvp {
-    flex-direction: row;
-    flex: none;
-    justify-content: center;
-    width: auto;
-    margin-top: 0;
-    padding-top: 0;
-    padding-bottom: 0;
-    border-top: 0;
-    font-size: 5.4cqw;
-    gap: 1.4cqw;
-  }
-  .et-rsvp-arrow { font-size: 6cqw; }
-
-  .et-main { flex: 1; min-height: 0; padding: 3.2cqw 5cqw; }
-  .et-presenter, .et-stars { font-size: 3.1cqw; }
-  .et-main > .et-mark { width: 30cqw; height: 17.2cqw; margin: 2cqw 0 0.6cqw; }
-  .et-headline {
-    font-size: 10cqw;
-    white-space: normal;
-    text-align: center;
-    line-height: 0.92;
-  }
-  .et-rule { height: 0.8cqw; margin-top: 2.4cqw; }
-  .et-info { gap: 4.5cqw; margin-top: 2.4cqw; }
-  .et-date { padding-right: 4.5cqw; border-right-width: 0.8cqw; }
-  .et-date-month { font-size: 4.4cqw; }
-  .et-date-day { font-size: 13cqw; }
-  .et-date-year { font-size: 4cqw; }
-  .et-where p { font-size: 3.6cqw; }
-  .et-facts { margin-top: 2.4cqw; }
-  .et-facts span { font-size: 3.1cqw; }
-}
-
 /* ---- Fallback for browsers without container queries (pre-Safari 16 / iOS 16,
         Chrome <105, Firefox <110) --------------------------------------------
    The ticket sizes its interior in cqw against its own width. Where that isn't
    supported every one of those declarations is dropped and the type collapses
    to inherited sizes, which looks broken rather than merely plain.
-   The ticket's width is still predictable — it's a fixed share of the grid — so
-   this restates the same values in vw at the measured ratio for each column
-   count. Rendering is near-identical; it just can't respond to anything but the
-   viewport. Nothing here runs in a browser that supports container queries. */
+
+   Since the dock sets an explicit --dock-w, the same values restate exactly as
+   a fraction of that custom property — no breakpoints and no approximation,
+   because custom properties and calc() need no container support. Nothing here
+   runs in a browser that supports container queries. */
 @supports not (container-type: inline-size) {
-
-  /* one column — 1cqw ≈ 0.893vw */
-  @media (max-width: 639px) {
-    .et-stub-right { padding: 2.1432vw; }
-    .et-rsvp { font-size: 4.8222vw; gap: 1.2502vw; }
-    .et-rsvp-arrow { font-size: 5.358vw; }
-    .et-main { padding: 2.8576vw 4.465vw; }
-    .et-presenter, .et-stars { font-size: 2.7683vw; }
-    .et-main > .et-mark { width: 26.79vw; height: 15.3596vw; margin: 1.786vw 0 0.5358vw; }
-    .et-headline { font-size: 8.93vw; }
-    .et-rule { height: 0.7144vw; margin-top: 2.1432vw; }
-    .et-info { gap: 4.0185vw; margin-top: 2.1432vw; }
-    .et-date { padding-right: 4.0185vw; border-right-width: 0.7144vw; }
-    .et-date-month { font-size: 3.9292vw; }
-    .et-date-day { font-size: 11.609vw; }
-    .et-date-year { font-size: 3.572vw; }
-    .et-where p { font-size: 3.2148vw; }
-    .et-facts { margin-top: 2.1432vw; }
-    .et-facts span { font-size: 2.7683vw; }
-  }
-
-  /* two columns — the ticket spans the full row — 1cqw ≈ 0.928vw */
-  @media (min-width: 640px) and (max-width: 1023px) {
-    .et-stub-left { width: 7.3776vw; }
-    .et-stub-right { width: 15.8224vw; padding: 0 1.4848vw; }
-    .et-terms { gap: 0.6496vw; padding-top: 1.7632vw; }
-    .et-serial { font-size: 1.689vw; }
-    .et-term { font-size: 1.689vw; }
-    .et-main > .et-mark { width: 15.5904vw; height: 8.9645vw; margin: 0.6496vw 0 0.232vw; }
-    .et-main { padding: 1.689vw 2.7376vw; }
-    .et-presenter,
-.et-stars { font-size: 1.689vw; }
-    .et-stars { margin-top: 0.4176vw; }
-    .et-headline { margin: 0.4176vw 0 0; font-size: 7.1734vw; }
-    .et-rule { height: 0.3155vw; margin-top: 1.0579vw; }
-    .et-info { gap: 2.1066vw; margin-top: 1.2621vw; }
-    .et-date { padding-right: 2.1066vw; border-right: 0.3155vw solid #14181a; }
-    .et-date-month { font-size: 2.5334vw; }
-    .et-date-day { font-size: 7.591vw; }
-    .et-date-year { font-size: 2.32vw; }
-    .et-where { gap: 0.2134vw; }
-    .et-where p { font-size: 2.1066vw; }
-    .et-facts { margin-top: 1.689vw; }
-    .et-facts span { font-size: 2.32vw; }
-    .et-rsvp { gap: 0.2784vw; padding-top: 1.1136vw; padding-bottom: 1.7632vw; border-top: 0.3155vw solid #14181a; font-size: 3.8048vw; }
-    .et-rsvp-arrow { font-size: 7.7952vw; }
-  }
-
-  /* three columns — 1cqw ≈ 0.619vw */
-  @media (min-width: 1024px) and (max-width: 1599px) {
-    .et-stub-left { width: 4.9211vw; }
-    .et-stub-right { width: 10.554vw; padding: 0 0.9904vw; }
-    .et-terms { gap: 0.4333vw; padding-top: 1.1761vw; }
-    .et-serial { font-size: 1.1266vw; }
-    .et-term { font-size: 1.1266vw; }
-    .et-main > .et-mark { width: 10.3992vw; height: 5.9795vw; margin: 0.4333vw 0 0.1547vw; }
-    .et-main { padding: 1.1266vw 1.8261vw; }
-    .et-presenter,
-.et-stars { font-size: 1.1266vw; }
-    .et-stars { margin-top: 0.2786vw; }
-    .et-headline { margin: 0.2786vw 0 0; font-size: 4.7849vw; }
-    .et-rule { height: 0.2105vw; margin-top: 0.7057vw; }
-    .et-info { gap: 1.4051vw; margin-top: 0.8418vw; }
-    .et-date { padding-right: 1.4051vw; border-right: 0.2105vw solid #14181a; }
-    .et-date-month { font-size: 1.6899vw; }
-    .et-date-day { font-size: 5.0634vw; }
-    .et-date-year { font-size: 1.5475vw; }
-    .et-where { gap: 0.1424vw; }
-    .et-where p { font-size: 1.4051vw; }
-    .et-facts { margin-top: 1.1266vw; }
-    .et-facts span { font-size: 1.5475vw; }
-    .et-rsvp { gap: 0.1857vw; padding-top: 0.7428vw; padding-bottom: 1.1761vw; border-top: 0.2105vw solid #14181a; font-size: 2.5379vw; }
-    .et-rsvp-arrow { font-size: 5.1996vw; }
-  }
-
-  /* four columns — 1cqw ≈ 0.462vw */
-  @media (min-width: 1600px) {
-    .et-stub-left { width: 3.6729vw; }
-    .et-stub-right { width: 7.8771vw; padding: 0 0.7392vw; }
-    .et-terms { gap: 0.3234vw; padding-top: 0.8778vw; }
-    .et-serial { font-size: 0.8408vw; }
-    .et-term { font-size: 0.8408vw; }
-    .et-main > .et-mark { width: 7.7616vw; height: 4.4629vw; margin: 0.3234vw 0 0.1155vw; }
-    .et-main { padding: 0.8408vw 1.3629vw; }
-    .et-presenter,
-.et-stars { font-size: 0.8408vw; }
-    .et-stars { margin-top: 0.2079vw; }
-    .et-headline { margin: 0.2079vw 0 0; font-size: 3.5713vw; }
-    .et-rule { height: 0.1571vw; margin-top: 0.5267vw; }
-    .et-info { gap: 1.0487vw; margin-top: 0.6283vw; }
-    .et-date { padding-right: 1.0487vw; border-right: 0.1571vw solid #14181a; }
-    .et-date-month { font-size: 1.2613vw; }
-    .et-date-day { font-size: 3.7792vw; }
-    .et-date-year { font-size: 1.155vw; }
-    .et-where { gap: 0.1063vw; }
-    .et-where p { font-size: 1.0487vw; }
-    .et-facts { margin-top: 0.8408vw; }
-    .et-facts span { font-size: 1.155vw; }
-    .et-rsvp { gap: 0.1386vw; padding-top: 0.5544vw; padding-bottom: 0.8778vw; border-top: 0.1571vw solid #14181a; font-size: 1.8942vw; }
-    .et-rsvp-arrow { font-size: 3.8808vw; }
-  }
+  .et-stub-left { width: calc(var(--dock-w) * 0.079500); }
+  .et-stub-right { width: calc(var(--dock-w) * 0.170500); padding: 0 calc(var(--dock-w) * 0.016000); }
+  .et-terms { gap: calc(var(--dock-w) * 0.007000); padding-top: calc(var(--dock-w) * 0.019000); }
+  .et-serial { font-size: calc(var(--dock-w) * 0.018200); }
+  .et-term { font-size: calc(var(--dock-w) * 0.018200); }
+  .et-main > .et-mark { width: calc(var(--dock-w) * 0.168000); height: calc(var(--dock-w) * 0.096600); margin: calc(var(--dock-w) * 0.007000) 0 calc(var(--dock-w) * 0.002500); }
+  .et-main { padding: calc(var(--dock-w) * 0.018200) calc(var(--dock-w) * 0.029500); }
+  .et-presenter,
+.et-stars { font-size: calc(var(--dock-w) * 0.018200); }
+  .et-stars { margin-top: calc(var(--dock-w) * 0.004500); }
+  .et-headline { margin: calc(var(--dock-w) * 0.004500) 0 0; font-size: calc(var(--dock-w) * 0.077300); }
+  .et-rule { height: calc(var(--dock-w) * 0.003400); margin-top: calc(var(--dock-w) * 0.011400); }
+  .et-info { gap: calc(var(--dock-w) * 0.022700); margin-top: calc(var(--dock-w) * 0.013600); }
+  .et-date { padding-right: calc(var(--dock-w) * 0.022700); border-right: calc(var(--dock-w) * 0.003400) solid #14181a; }
+  .et-date-month { font-size: calc(var(--dock-w) * 0.027300); }
+  .et-date-day { font-size: calc(var(--dock-w) * 0.081800); }
+  .et-date-year { font-size: calc(var(--dock-w) * 0.025000); }
+  .et-where { gap: calc(var(--dock-w) * 0.002300); }
+  .et-where p { font-size: calc(var(--dock-w) * 0.022700); }
+  .et-facts { margin-top: calc(var(--dock-w) * 0.018200); }
+  .et-facts span { font-size: calc(var(--dock-w) * 0.025000); }
+  .et-rsvp { gap: calc(var(--dock-w) * 0.003000); padding-top: calc(var(--dock-w) * 0.012000); padding-bottom: calc(var(--dock-w) * 0.019000); border-top: calc(var(--dock-w) * 0.003400) solid #14181a; font-size: calc(var(--dock-w) * 0.041000); }
+  .et-rsvp-arrow { font-size: calc(var(--dock-w) * 0.084000); }
 }

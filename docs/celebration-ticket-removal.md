@@ -27,12 +27,13 @@ correctness matters far more than speed.
 
 - `app/feed/Feed.tsx` — drop the `EventTile` import, the `showCelebration`
   prop (from both the props type and the signature), and the line rendering
-  `<EventTile />` in the grid.
+  `<EventTile show={...} />`. It sits just above the `{!READ_ONLY && (` block,
+  in the fixed bottom layer — not in the grid.
 - `app/page.tsx` — drop the `isCelebrationOver` import and the
   `showCelebration={...}` prop passed to `<Feed>`.
 - `app/globals.css` — delete the section under the banner comment
-  `Celebration-of-life hard ticket` (selectors `.event-link`, `.event-ticket`
-  and everything prefixed `.et-`, including its `max-width: 639px` block), and
+  `Celebration-of-life hard ticket` (selectors `.event-dock`, `.event-ticket`
+  and everything prefixed `.et-`), and
   the separate block guarded by `@supports not (container-type: inline-size)`,
   which exists only as a fallback for that ticket.
 - `app/layout.tsx` — remove the `Archivo_Narrow` import, its config object and
@@ -44,8 +45,10 @@ correctness matters far more than speed.
 - `npx tsc --noEmit` and `npx eslint app lib` must be clean. Pre-existing
   errors in `app/ThemeToggle.tsx` and `app/share/Composer.tsx` are not yours.
 - `npm run build` must succeed.
-- Grep for `event-ticket`, `et-`, `EventTile`, `CELEBRATION`, `isCelebrationOver`
-  and `font-condensed` to confirm nothing dangles.
+- Grep for `event-dock`, `event-ticket`, `et-`, `EventTile`, `CELEBRATION`,
+  `isCelebrationOver`, `dock-w` and `font-condensed` to confirm nothing dangles.
+- The floating add button (`.fab-zone`, `.fab`) is NOT part of this — the ticket
+  shares its bottom band but the button predates it and stays.
 
 ## Known non-issue
 
