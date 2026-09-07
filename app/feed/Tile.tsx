@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { formatStoryMonth } from "@/lib/date";
 import { TileAudio } from "./TileAudio";
 import { TileVideo } from "./TileVideo";
+import { tileCropStyle, type TileCrop } from "@/lib/crop";
 
 /** How long each image shows before auto-advancing (ms) — matches the detail view. */
 const SLIDE_MS = 5000;
@@ -55,6 +56,11 @@ export interface FeedMedia {
   width: number | null;
   height: number | null;
   peaks: number[] | null;
+  /**
+   * The 1:1 region an admin picked for this image's tile. Absent/null means
+   * the tile centres the image with `object-fit: cover`.
+   */
+  crop?: TileCrop | null;
 }
 
 export interface FeedPost {
@@ -106,6 +112,9 @@ export function Tile({
 
   // Pick black or white for the date based on the luminance of what's behind it.
   const articleRef = useRef<HTMLElement | null>(null);
+  // The crop of whichever media the probe below lands on, so it samples the
+  // region the tile actually shows.
+  const activeCrop = (isMultiImage ? images[idx] : primary)?.crop ?? null;
   const [dateInk, setDateInk] = useState<"light" | "dark">("light");
   useEffect(() => {
     const root = articleRef.current;
@@ -119,7 +128,7 @@ export function Tile({
     let cancelled = false;
     const compute = () => {
       if (cancelled) return;
-      const lum = topLeftLuminance(el);
+      const lum = topLeftLuminance(el, activeCrop);
       if (lum != null) setDateInk(lum > 0.6 ? "dark" : "light");
     };
     if (el instanceof HTMLImageElement) {
@@ -132,7 +141,7 @@ export function Tile({
     return () => {
       cancelled = true;
     };
-  }, [idx, primary?.url]);
+  }, [idx, primary?.url, activeCrop]);
 
   const variant = QUIET_VARIANTS[hashStr(post.id) % QUIET_VARIANTS.length];
   const onMedia = isImageLed || isVideo;
@@ -179,6 +188,8 @@ export function Tile({
                   loading="lazy"
                   className="tile-fill carousel-img"
                   data-active={i === idx}
+                  data-cropped={m.crop ? "" : undefined}
+                  style={tileCropStyle(m.crop)}
                 />
               ))}
               <button
@@ -200,7 +211,14 @@ export function Tile({
             </div>
           ) : (
             /* eslint-disable-next-line @next/next/no-img-element */
-            <img src={primary.url} alt="" loading="lazy" className="tile-fill" />
+            <img
+              src={primary.url}
+              alt=""
+              loading="lazy"
+              className="tile-fill"
+              data-cropped={primary.crop ? "" : undefined}
+              style={tileCropStyle(primary.crop)}
+            />
           ))}
         {isVideo && primary && (
           <TileVideo src={primary.url} durationMs={primary.durationMs ?? undefined} />
@@ -319,10 +337,14 @@ function hashStr(s: string): number {
 
 
 /**
- * Average luminance (0–1) of the top-left region where the date sits. Returns
+ * Average luminance (0–1) of the top-left region where the date sits, measured
+ * inside `crop` when the tile is showing an admin-chosen 1:1 region. Returns
  * null if it can't be read (e.g. a cross-origin Blob image taints the canvas).
  */
-function topLeftLuminance(el: HTMLImageElement | HTMLVideoElement): number | null {
+function topLeftLuminance(
+  el: HTMLImageElement | HTMLVideoElement,
+  crop?: TileCrop | null,
+): number | null {
   const sw = el instanceof HTMLImageElement ? el.naturalWidth : el.videoWidth;
   const sh = el instanceof HTMLImageElement ? el.naturalHeight : el.videoHeight;
   if (!sw || !sh) return null;
@@ -332,7 +354,21 @@ function topLeftLuminance(el: HTMLImageElement | HTMLVideoElement): number | nul
     c.height = 12;
     const ctx = c.getContext("2d", { willReadFrequently: true });
     if (!ctx) return null;
-    ctx.drawImage(el, 0, 0, Math.max(1, sw * 0.55), Math.max(1, sh * 0.22), 0, 0, 12, 12);
+    const rx = (crop?.x ?? 0) * sw;
+    const ry = (crop?.y ?? 0) * sh;
+    const rw = (crop?.w ?? 1) * sw;
+    const rh = (crop?.h ?? 1) * sh;
+    ctx.drawImage(
+      el,
+      rx,
+      ry,
+      Math.max(1, rw * 0.55),
+      Math.max(1, rh * 0.22),
+      0,
+      0,
+      12,
+      12,
+    );
     const d = ctx.getImageData(0, 0, 12, 12).data;
     let sum = 0;
     for (let i = 0; i < d.length; i += 4) {

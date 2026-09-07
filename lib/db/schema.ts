@@ -3,6 +3,7 @@ import {
   sqliteTable,
   text,
   integer,
+  real,
   index,
 } from "drizzle-orm/sqlite-core";
 import { randomUUID } from "node:crypto";
@@ -70,6 +71,17 @@ export const mediaItems = sqliteTable(
     height: integer("height"),
     // Stored as JSON-encoded array of small ints (0–255) for the static waveform preview.
     waveformPeaks: text("waveform_peaks", { mode: "json" }).$type<number[] | null>(),
+    /**
+     * The square (1:1) region of an image shown on a feed tile, as fractions of
+     * the natural image size (x/y = top-left corner, w/h = side length as a
+     * fraction of width/height — different numbers for a non-square image).
+     * Set from the admin panel; null means "not chosen", and the tile falls
+     * back to a centred `object-fit: cover`.
+     */
+    cropX: real("crop_x"),
+    cropY: real("crop_y"),
+    cropW: real("crop_w"),
+    cropH: real("crop_h"),
     position: integer("position").notNull().default(0),
   },
   (t) => [index("media_items_post_id_idx").on(t.postId)],

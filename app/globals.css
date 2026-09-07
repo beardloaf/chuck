@@ -1656,6 +1656,70 @@ p, span, li, label, input, textarea, button.body, .body {
   z-index: 0;
 }
 
+/* An image with an admin-chosen 1:1 crop positions itself instead (the inline
+   left/top/width/height from tileCropStyle), so drop the stretch-to-fill
+   `inset` that would otherwise fight it — and the preflight `max-width: 100%`,
+   which would otherwise clamp the blown-up image back to the tile's width. */
+.tile-fill[data-cropped] {
+  inset: auto;
+  max-width: none;
+  max-height: none;
+}
+
+/* --------------------- Admin: tile crop editor -------------------------- */
+
+.crop-editor {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  margin-top: 0.5rem;
+}
+@media (min-width: 640px) {
+  .crop-editor {
+    grid-template-columns: 15rem minmax(0, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* The preview box is the tile, one-to-one: a square window onto the photo. */
+.crop-box {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  max-width: 15rem;
+  overflow: hidden;
+  border-radius: var(--r-lg);
+  background: #000;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.crop-box:active {
+  cursor: grabbing;
+}
+.crop-img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  max-height: none;
+  pointer-events: none;
+}
+
+.crop-controls {
+  display: grid;
+  gap: 0.6rem;
+  align-content: start;
+}
+.crop-zoom {
+  display: grid;
+  gap: 0.3rem;
+}
+.crop-zoom input[type="range"] {
+  width: 100%;
+  accent-color: var(--ink);
+}
+
 /* Tinted variants for non-media tiles (give the wall some rhythm) */
 .tile-quiet { background: #15151a; }
 .tile-deep { background: #111114; }

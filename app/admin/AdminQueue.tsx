@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { formatDistanceToNowStrict } from "date-fns";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
 import { isCompressedVideo } from "@/lib/site";
+import type { TileCrop } from "@/lib/crop";
+import { TileCropper } from "./TileCropper";
 
 export interface AdminMedia {
   id: string;
@@ -15,6 +17,8 @@ export interface AdminMedia {
   width: number | null;
   height: number | null;
   peaks: number[] | null;
+  /** The 1:1 region this image shows on its feed tile (null = centred). */
+  crop: TileCrop | null;
 }
 
 export interface AdminPost {
@@ -176,6 +180,20 @@ function AdminCard({ post }: { post: AdminPost }) {
     }
   }
 
+  /** Persist (or clear, with null) the 1:1 crop an image uses on its tile. */
+  async function saveCrop(mediaId: string, crop: TileCrop | null) {
+    const res = await fetch(`/api/admin/media/${mediaId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ crop }),
+    });
+    if (!res.ok) {
+      window.alert("Couldn't save that crop.");
+      return;
+    }
+    startTransition(() => router.refresh());
+  }
+
   async function removeMedia(mediaId: string) {
     if (!window.confirm("Remove this media from the post?")) return;
     const res = await fetch(`/api/admin/media/${mediaId}`, { method: "DELETE" });
@@ -318,6 +336,7 @@ function AdminCard({ post }: { post: AdminPost }) {
             key={m.id}
             m={m}
             onRemove={() => removeMedia(m.id)}
+            onCrop={(crop) => saveCrop(m.id, crop)}
             onMoveUp={post.media.length > 1 ? () => moveMedia(i, -1) : undefined}
             onMoveDown={
               post.media.length > 1 ? () => moveMedia(i, 1) : undefined
@@ -468,6 +487,7 @@ function StatusPill({ status }: { status: string }) {
 function MediaItem({
   m,
   onRemove,
+  onCrop,
   onMoveUp,
   onMoveDown,
   isFirst,
@@ -476,6 +496,8 @@ function MediaItem({
 }: {
   m: AdminMedia;
   onRemove: () => void;
+  /** Save the tile crop for this image (null clears it back to centred). */
+  onCrop: (crop: TileCrop | null) => Promise<void>;
   onMoveUp?: () => void;
   onMoveDown?: () => void;
   isFirst?: boolean;
@@ -483,6 +505,35 @@ function MediaItem({
   optimizing?: boolean;
 }) {
   const canReorder = !!(onMoveUp || onMoveDown);
+  const [cropping, setCropping] = useState(false);
+  const [savingCrop, setSavingCrop] = useState(false);
+
+  async function commitCrop(crop: TileCrop | null) {
+    setSavingCrop(true);
+    try {
+      await onCrop(crop);
+      setCropping(false);
+    } finally {
+      setSavingCrop(false);
+    }
+  }
+
+  if (m.type === "image" && cropping) {
+    return (
+      <div className="rounded-md border border-line p-3">
+        <p className="text-xs text-ink-3 mb-1">Homepage tile crop (1:1)</p>
+        <TileCropper
+          src={m.url}
+          crop={m.crop}
+          saving={savingCrop}
+          onSave={(crop) => commitCrop(crop)}
+          onClear={() => commitCrop(null)}
+          onCancel={() => setCropping(false)}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={`relative max-w-full ${m.type === "image" ? "inline-block" : "block"}`}
@@ -542,6 +593,16 @@ function MediaItem({
             </svg>
           </button>
         </div>
+      )}
+      {m.type === "image" && (
+        <button
+          type="button"
+          onClick={() => setCropping(true)}
+          title="Set the 1:1 crop used on the homepage tile"
+          className="absolute bottom-1.5 right-1.5 rounded-full bg-black/65 px-2.5 py-1 text-[0.7rem] text-white backdrop-blur transition hover:bg-black/85"
+        >
+          {m.crop ? "Crop ✓" : "Crop"}
+        </button>
       )}
       <button
         type="button"
