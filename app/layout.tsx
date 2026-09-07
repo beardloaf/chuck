@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo_Narrow, Inter_Tight } from "next/font/google";
 import "./globals.css";
+import { SITE_NAME } from "@/lib/site";
 
 const interTight = Inter_Tight({
   variable: "--font-inter-tight",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
   description: OG_DESCRIPTION,
   openGraph: {
     type: "website",
-    siteName: "Charles Mikula",
+    siteName: SITE_NAME,
     title: "Charles Mikula — In Memories",
     description: OG_DESCRIPTION,
     url: "/",

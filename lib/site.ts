@@ -8,6 +8,13 @@
 /** Path prefix when hosted under a sub-path (unset = served at the root). */
 export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
+/**
+ * Attribution shown on social cards. Next replaces `openGraph` wholesale
+ * rather than merging it, so every route that sets its own card has to repeat
+ * this — hence the shared constant.
+ */
+export const SITE_NAME = "Charles Mikula";
+
 /** When true, hide write affordances (the site is a published, read-only view). */
 export const READ_ONLY = process.env.NEXT_PUBLIC_READ_ONLY === "1";
 
