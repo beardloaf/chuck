@@ -4,6 +4,7 @@ import { Feed } from "./feed/Feed";
 import type { FeedPost } from "./feed/Tile";
 import { asset, displayUrl } from "@/lib/site";
 import { isCelebrationOver } from "@/lib/event";
+import { toTileCrop } from "@/lib/crop";
 
 // Rendered at request time against the live database (Turso in production), so
 // newly approved memories show up without a rebuild.
@@ -56,6 +57,8 @@ export default async function HomePage() {
         width: m.width,
         height: m.height,
         peaks: m.waveformPeaks ?? null,
+        // Admin-chosen 1:1 region; only images carry one.
+        crop: toTileCrop(m),
       };
     }),
   }));

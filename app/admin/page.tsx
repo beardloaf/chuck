@@ -1,6 +1,7 @@
 import { db, schema } from "@/lib/db";
 import { desc, eq, inArray } from "drizzle-orm";
 import { isAuthed } from "@/lib/admin";
+import { toTileCrop } from "@/lib/crop";
 import { AdminLogin } from "./AdminLogin";
 import { AdminQueue, type AdminPost } from "./AdminQueue";
 
@@ -70,6 +71,7 @@ export default async function AdminPage({
       width: m.width,
       height: m.height,
       peaks: m.waveformPeaks ?? null,
+      crop: toTileCrop(m),
     })),
   }));
 
