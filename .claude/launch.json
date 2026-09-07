@@ -3,7 +3,7 @@
   "configurations": [
     {
       "name": "mikula-dev",
-      "runtimeExecutable": "/Users/mikula/Chuck/.claude/run-next.sh",
+      "runtimeExecutable": "./node_modules/.bin/next",
       "runtimeArgs": ["dev", "--webpack", "-p", "3737"],
       "port": 3737
     }
