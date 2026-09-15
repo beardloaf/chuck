@@ -11,6 +11,12 @@ import { EscapeBack } from "./EscapeBack";
 import { ScrollLock } from "./ScrollLock";
 import { MediaCarousel } from "./MediaCarousel";
 import { DownloadAll, type DownloadItem } from "./DownloadAll";
+import {
+  SlideshowProvider,
+  StoryPhoto,
+  type SlideshowPhoto,
+  type SlideshowPost,
+} from "./Slideshow";
 import { asset, displayUrl, originalUrl, SITE_NAME } from "@/lib/site";
 
 // Rendered at request time so a story is viewable as soon as it's approved,
@@ -163,10 +169,33 @@ export default async function StoryPage({
     title: p.title,
   }));
 
-  // Story-dated posts are month-granular; undated posts show the full posted date.
-  const dateLabel = row.storyDate
-    ? formatStoryMonth(row.storyDate, "MMMM yyyy")
-    : format(row.createdAt, "MMMM d, yyyy");
+  // ---- slideshow: every photo of every memory, in the timeline's order ----
+  const photosByPost = new Map<string, SlideshowPhoto[]>();
+  for (const m of [...allMedia].sort((a, b) => a.position - b.position)) {
+    if (m.type !== "image") continue;
+    const photos = photosByPost.get(m.postId) ?? [];
+    photos.push(toSlideshowPhoto(m));
+    photosByPost.set(m.postId, photos);
+  }
+  const slideshow: SlideshowPost[] = [...allPosts]
+    // Newest first, matching the timeline strip (and its arrow-key direction).
+    .sort((a, b) => postDate(b) - postDate(a))
+    .flatMap((p) => {
+      const photos = photosByPost.get(p.id);
+      if (!photos) return [];
+      const label = dateLabelOf(p);
+      return [
+        {
+          id: p.id,
+          heading: p.title?.trim() || label,
+          author: p.author,
+          dateLabel: label,
+          photos,
+        },
+      ];
+    });
+
+  const dateLabel = dateLabelOf(row);
   const hasMedia = media.length > 0;
   const hasBody = !!row.body?.trim();
   const heading = row.title?.trim() || dateLabel;
@@ -207,54 +236,89 @@ export default async function StoryPage({
 
   return (
     <div className="story">
-      <ScrollLock />
-      <EscapeBack />
-      <Timeline items={timeline} activeId={row.id} />
+      <SlideshowProvider posts={slideshow} activeId={row.id}>
+        <ScrollLock />
+        <EscapeBack />
+        <Timeline items={timeline} activeId={row.id} />
 
-      {hasMedia && !hasBody ? (
-        /* Media-only memory: float the photo/video on the dark stage. Top bar:
-           back (left), name + headline (centre), download (right). */
-        <div className="story-stage">
-          <div className="story-topbar">
-            {backLink}
-            <div className="story-stage-meta">
-              <p className="story-stage-date">{dateLabel}</p>
-              {row.title?.trim() && (
-                <h1 className="story-stage-title">{row.title.trim()}</h1>
-              )}
-              <p className="story-stage-name">{row.author}</p>
+        {hasMedia && !hasBody ? (
+          /* Media-only memory: float the photo/video on the dark stage. Top bar:
+             back (left), name + headline (centre), download (right). */
+          <div className="story-stage">
+            <div className="story-topbar">
+              {backLink}
+              <div className="story-stage-meta">
+                <p className="story-stage-date">{dateLabel}</p>
+                {row.title?.trim() && (
+                  <h1 className="story-stage-title">{row.title.trim()}</h1>
+                )}
+                <p className="story-stage-name">{row.author}</p>
+              </div>
+              <DownloadAll items={downloadItems} />
             </div>
-            <DownloadAll items={downloadItems} />
+            <div className="story-stage-media">{mediaEl}</div>
           </div>
-          <div className="story-stage-media">{mediaEl}</div>
-        </div>
-      ) : hasMedia ? (
-        /* Media + story text: same top bar (back left, download right) so the
-           buttons sit in the same place as the media-only view, then columns. */
-        <>
-          <div className="story-topbar story-topbar-split">
-            {backLink}
-            <DownloadAll items={downloadItems} />
-          </div>
+        ) : hasMedia ? (
+          /* Media + story text: back sits atop the prose column; download sits
+             under the media — at the right end of the stepper when there is one. */
           <div
             className={`story-cols ${media.length === 1 ? "single-media" : ""}`}
           >
             <div className="story-text">
-              <div className="story-text-scroll">{prose}</div>
+              <div className="story-text-scroll">
+                {backLink}
+                {prose}
+              </div>
             </div>
-            <div className="story-media">{mediaEl}</div>
+            <div className="story-media">
+              {media.length > 1 ? (
+                <MediaCarousel
+                  media={media.map(toCarouselMedia)}
+                  controlsEnd={<DownloadAll items={downloadItems} />}
+                />
+              ) : (
+                <>
+                  <div className="story-media-frame">
+                    <MediaBlock m={media[0]} />
+                  </div>
+                  <div className="story-media-actions">
+                    <DownloadAll items={downloadItems} />
+                  </div>
+                </>
+              )}
+            </div>
           </div>
-        </>
-      ) : (
-        <div className="story-inner">
-          <div className="story-single">
-            {backLink}
-            {prose}
+        ) : (
+          <div className="story-inner">
+            <div className="story-single">
+              {backLink}
+              {prose}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </SlideshowProvider>
     </div>
   );
+}
+
+function postDate(p: typeof schema.posts.$inferSelect): number {
+  return (p.storyDate ?? p.createdAt).getTime();
+}
+
+/** Story-dated posts are month-granular; undated posts show the full posted date. */
+function dateLabelOf(p: typeof schema.posts.$inferSelect): string {
+  return p.storyDate
+    ? formatStoryMonth(p.storyDate, "MMMM yyyy")
+    : format(p.createdAt, "MMMM d, yyyy");
+}
+
+function toSlideshowPhoto(m: typeof schema.mediaItems.$inferSelect): SlideshowPhoto {
+  return {
+    id: m.id,
+    url: asset(displayUrl(m.url, "image")),
+    width: m.width,
+    height: m.height,
+  };
 }
 
 /** Map a DB media row to the serializable shape the client carousel needs. */
@@ -285,19 +349,7 @@ function extFromUrl(url: string): string {
 }
 
 function MediaBlock({ m }: { m: typeof schema.mediaItems.$inferSelect }) {
-  if (m.type === "image") {
-    return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={asset(displayUrl(m.url, m.type))}
-        alt=""
-        className="story-image"
-        style={{
-          aspectRatio: m.width && m.height ? `${m.width} / ${m.height}` : undefined,
-        }}
-      />
-    );
-  }
+  if (m.type === "image") return <StoryPhoto photo={toSlideshowPhoto(m)} />;
   if (m.type === "video") {
     return (
       <video
