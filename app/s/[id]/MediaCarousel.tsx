@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
+import { StoryPhoto } from "./Slideshow";
 
 export interface CarouselMedia {
   id: string;
@@ -23,8 +24,17 @@ const SLIDE_MS = 5000;
  *
  * Auto-advance only runs on image slides — video/audio slides hold so a
  * playing clip isn't yanked away. Hovering pauses the timer.
+ *
+ * `controlsEnd` (e.g. a download button) sits at the right end of the stepper
+ * row; the stepper stays centred while there's room and slides left when not.
  */
-export function MediaCarousel({ media }: { media: CarouselMedia[] }) {
+export function MediaCarousel({
+  media,
+  controlsEnd,
+}: {
+  media: CarouselMedia[];
+  controlsEnd?: ReactNode;
+}) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = media.length;
@@ -55,6 +65,7 @@ export function MediaCarousel({ media }: { media: CarouselMedia[] }) {
             className="carousel-slide"
             data-active={i === index ? "true" : undefined}
             aria-hidden={i === index ? undefined : true}
+            inert={i !== index}
           >
             <Slide m={m} active={i === index} />
           </div>
@@ -62,49 +73,55 @@ export function MediaCarousel({ media }: { media: CarouselMedia[] }) {
       </div>
 
       <div className="carousel-controls">
-        <button
-          type="button"
-          className="carousel-arrow"
-          onClick={prev}
-          aria-label="Previous media"
-        >
-          <ChevronLeft />
-        </button>
-        <div className="carousel-dots" role="tablist" aria-label="Choose media">
-          {media.map((m, i) => (
-            <button
-              key={m.id}
-              type="button"
-              className="carousel-dot"
-              data-active={i === index ? "true" : undefined}
-              aria-label={`Show media ${i + 1} of ${count}`}
-              aria-selected={i === index}
-              role="tab"
-              onClick={() => setIndex(i)}
-            >
-              {i === index &&
-                (autoAdvance ? (
-                  <span
-                    // Remounting on each slide restarts the fill animation cleanly.
-                    key={index}
-                    className="carousel-dot-fill"
-                    style={{ animationDuration: `${SLIDE_MS}ms` }}
-                    onAnimationEnd={next}
-                  />
-                ) : (
-                  <span className="carousel-dot-fill carousel-dot-fill--static" />
-                ))}
-            </button>
-          ))}
+        <div className="carousel-controls-side" />
+        <div className="carousel-stepper">
+          <button
+            type="button"
+            className="carousel-arrow"
+            onClick={prev}
+            aria-label="Previous media"
+          >
+            <ChevronLeft />
+          </button>
+          <div className="carousel-dots" role="tablist" aria-label="Choose media">
+            {media.map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                className="carousel-dot"
+                data-active={i === index ? "true" : undefined}
+                aria-label={`Show media ${i + 1} of ${count}`}
+                aria-selected={i === index}
+                role="tab"
+                onClick={() => setIndex(i)}
+              >
+                {i === index &&
+                  (autoAdvance ? (
+                    <span
+                      // Remounting on each slide restarts the fill animation cleanly.
+                      key={index}
+                      className="carousel-dot-fill"
+                      style={{ animationDuration: `${SLIDE_MS}ms` }}
+                      onAnimationEnd={next}
+                    />
+                  ) : (
+                    <span className="carousel-dot-fill carousel-dot-fill--static" />
+                  ))}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="carousel-arrow"
+            onClick={next}
+            aria-label="Next media"
+          >
+            <ChevronRight />
+          </button>
         </div>
-        <button
-          type="button"
-          className="carousel-arrow"
-          onClick={next}
-          aria-label="Next media"
-        >
-          <ChevronRight />
-        </button>
+        <div className="carousel-controls-side carousel-controls-end">
+          {controlsEnd}
+        </div>
       </div>
     </div>
   );
@@ -134,17 +151,7 @@ function Slide({ m, active }: { m: CarouselMedia; active: boolean }) {
   }, [active]);
 
   if (m.type === "image") {
-    return (
-      /* eslint-disable-next-line @next/next/no-img-element */
-      <img
-        src={m.url}
-        alt=""
-        className="carousel-image"
-        style={{
-          aspectRatio: m.width && m.height ? `${m.width} / ${m.height}` : undefined,
-        }}
-      />
-    );
+    return <StoryPhoto photo={m} />;
   }
   if (m.type === "video") {
     return (

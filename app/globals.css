@@ -2261,6 +2261,19 @@ p, span, li, label, input, textarea, button.body, .body {
     flex: 1;
     min-height: 0;
   }
+
+  /* The panel has a fixed height here, so single photos fit inside it whole. */
+  .story-media-frame,
+  .story-stage-media {
+    container-type: size;
+  }
+  .story-media-frame > .story-photo,
+  .story-stage-media > .story-photo {
+    width: min(100cqw, 100cqh * var(--ar, 1.5));
+  }
+  .story-cols.single-media .story-media-frame > .story-video {
+    max-height: 100%;
+  }
 }
 
 /* ---- Media-only memory: floating photo/video on a dark stage ---- */
@@ -2286,16 +2299,6 @@ p, span, li, label, input, textarea, button.body, .body {
 }
 .story-topbar > .story-download {
   justify-self: end;
-}
-/* Two-column (media + text): the bar spans the full width above the columns. */
-.story > .story-topbar {
-  border-bottom: 1px solid var(--line);
-}
-/* This bar only has Back (left) + Download (right) — keep them on one row at
-   every width (Back justify-start, Download justify-end already apply). The
-   double class beats the mobile `.story-topbar` rule later in the file. */
-.story-topbar.story-topbar-split {
-  grid-template-columns: 1fr auto;
 }
 .story-stage-meta {
   min-width: 0;
@@ -2338,7 +2341,9 @@ p, span, li, label, input, textarea, button.body, .body {
   align-self: stretch;
   min-height: 0;
 }
-.story-stage-media > .story-image,
+.story-stage-media > .story-photo {
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); /* float */
+}
 .story-stage-media > .story-video {
   width: auto;
   height: auto;
@@ -2365,16 +2370,32 @@ p, span, li, label, input, textarea, button.body, .body {
   }
 }
 
-/* Single photo/video: centered in the panel, above the fold (no scroll). */
-.story-cols.single-media .story-media {
-  justify-content: center;
+/* Single photo/video: centered in the panel, above the fold (no scroll), with
+   the download action underneath. */
+.story-media-frame {
+  flex: 1;
+  min-height: 0;
+  display: flex;
   align-items: center;
+  justify-content: center;
 }
-.story-cols.single-media .story-image,
 .story-cols.single-media .story-video {
   max-height: calc(100vh - 92px - 3rem);
   width: auto;
   max-width: 100%;
+}
+.story-media-actions {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+}
+/* Mobile: no fixed-height panel to fit into — fill the column's width, capped
+   so a tall photo still fits on screen. Desktop fits the panel instead. */
+@media (max-width: 767px) {
+  .story-media-frame > .story-photo,
+  .story-stage-media > .story-photo {
+    width: min(100%, 70svh * var(--ar, 1.5));
+  }
 }
 
 .story-meta {
@@ -2418,12 +2439,25 @@ p, span, li, label, input, textarea, button.body, .body {
   white-space: pre-wrap;
 }
 
+/* Phones: tighter margins around the words (above Back and either side) and a
+   slightly smaller body, so more of the story fits per screen. */
+@media (max-width: 767px) {
+  .story-inner {
+    padding: 1.25rem 1.25rem 5rem;
+  }
+  .story-cols .story-text {
+    padding: 1.25rem 1.25rem 3rem;
+  }
+  .story-body {
+    font-size: 1.075rem;
+  }
+}
+
 .story-media {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
 }
-.story-image,
 .story-video {
   width: 100%;
   display: block;
@@ -2460,6 +2494,15 @@ p, span, li, label, input, textarea, button.body, .body {
   color: var(--ink);
   border-color: var(--ink-3);
 }
+/* On the black media panel, whatever the page theme. */
+.story-media .story-download {
+  color: rgba(255, 255, 255, 0.72);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+.story-media .story-download:hover:not(:disabled) {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.42);
+}
 .story-download:disabled {
   opacity: 0.6;
   cursor: default;
@@ -2477,6 +2520,7 @@ p, span, li, label, input, textarea, button.body, .body {
 /* -------------------------------- Carousel ------------------------------ */
 
 .story-carousel {
+  container: story-carousel / inline-size;
   position: relative;
   width: 100%;
   flex: 1;
@@ -2504,7 +2548,9 @@ p, span, li, label, input, textarea, button.body, .body {
   opacity: 1;
   pointer-events: auto;
 }
-.carousel-image,
+.carousel-slide {
+  container-type: size; /* photos fit inside the slide — see .story-photo */
+}
 .carousel-video {
   max-width: 100%;
   max-height: 100%;
@@ -2520,15 +2566,48 @@ p, span, li, label, input, textarea, button.body, .body {
   max-width: 560px;
 }
 
-/* Row holding the prev chevron, the dots, and the next chevron. */
+/* Row under the slides: the stepper (prev chevron, dots, next chevron) between
+   two equal flexible sides, so it stays centred. The right side holds any end
+   action (download) and won't shrink past it — when space runs short the left
+   side gives way first and the stepper slides left rather than overlapping. */
 .carousel-controls {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 0.75rem;
   padding-top: 1.25rem;
   padding-bottom: 0.35rem;
+}
+.carousel-controls-side {
+  flex: 1 1 0;
+  display: flex;
+}
+.carousel-controls-end {
+  justify-content: flex-end;
+}
+.carousel-stepper {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+/* Too narrow for both on one row: centre the stepper and drop the end action
+   onto its own row beneath, still anchored right. */
+@container story-carousel (max-width: 480px) {
+  .carousel-controls {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 1rem;
+  }
+  .carousel-controls-side:first-child {
+    display: none;
+  }
+  .carousel-controls-end {
+    flex-basis: 100%;
+  }
+  .carousel-controls-end:empty {
+    display: none;
+  }
 }
 .carousel-arrow {
   flex: 0 0 auto;
@@ -2605,6 +2684,353 @@ p, span, li, label, input, textarea, button.body, .body {
   .carousel-slide,
   .carousel-dot {
     transition: none;
+  }
+}
+
+/* ------------------------------ Story photo ----------------------------- */
+
+/* A photo box that holds the image's shape (--ar, width ÷ height) and fits
+   inside the nearest size container, so the box — and the expand button in its
+   corner — hugs the visible image rather than the panel around it. */
+.story-photo {
+  position: relative;
+  flex: 0 0 auto;
+  width: min(100cqw, 100cqh * var(--ar, 1.5));
+  aspect-ratio: var(--ar, 1.5);
+  border-radius: var(--r-lg);
+}
+.story-photo > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+  background: #000;
+}
+
+/* Round, frosted black button for controls laid over a photo. The hairline
+   border is its own layer so it can screen over what's beneath. */
+.photo-button {
+  position: relative;
+  flex: 0 0 auto;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--r-pill);
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 140ms ease, opacity 160ms ease;
+}
+.photo-button::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.photo-button:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.story-photo-expand {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  opacity: 0;
+}
+.story-photo:hover > .story-photo-expand,
+.story-photo-expand:focus-visible {
+  opacity: 1;
+}
+/* No hover on touch screens — keep the button showing. */
+@media (hover: none) {
+  .story-photo-expand {
+    opacity: 1;
+  }
+}
+
+/* ------------------------------- Slideshow ------------------------------ */
+
+body.slideshow-open {
+  overflow: hidden;
+}
+.slideshow {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: rgba(0, 0, 0, 0.94);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  color: #fff;
+  animation: slideshow-fade 220ms ease both;
+}
+.slideshow-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+}
+.slideshow-meta {
+  min-width: 0;
+  animation: slideshow-fade 450ms ease both;
+}
+.slideshow-date {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+}
+.slideshow-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.15rem, 0.9rem + 1vw, 1.6rem);
+  letter-spacing: -0.01em;
+  text-transform: none;
+  line-height: 1.15;
+  margin-top: 0.2rem;
+}
+.slideshow-name {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 0.1rem;
+}
+.slideshow-stage {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  padding: 0 5rem;
+}
+/* One grid cell, so the outgoing and incoming photos stack for the crossfade. */
+.slideshow-frame {
+  flex: 1;
+  min-width: 0;
+  container-type: size;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  place-items: center;
+}
+.slideshow-layer {
+  grid-area: 1 / 1;
+  animation-duration: 600ms;
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: both;
+}
+.slideshow-layer[data-motion="in"] {
+  animation-name: slideshow-fade;
+}
+.slideshow-layer[data-motion="out"] {
+  animation-name: slideshow-fade-out;
+}
+/* Crossing into another memory: the new photo drifts in from the side it's
+   coming from while the old one drifts off the other way, so the change of
+   memory reads at a glance. */
+.slideshow-layer[data-motion$="-next"],
+.slideshow-layer[data-motion$="-prev"] {
+  animation-duration: 750ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+.slideshow-layer[data-motion="in-next"] {
+  animation-name: slideshow-from-right;
+}
+.slideshow-layer[data-motion="in-prev"] {
+  animation-name: slideshow-from-left;
+}
+.slideshow-layer[data-motion="out-next"] {
+  animation-name: slideshow-out-left;
+}
+.slideshow-layer[data-motion="out-prev"] {
+  animation-name: slideshow-out-right;
+}
+.slideshow-close:hover {
+  background: #fff;
+  color: #000;
+}
+.slideshow-arrow {
+  position: absolute;
+  top: 50%;
+  width: 2.75rem;
+  height: 2.75rem;
+  transform: translateY(-50%);
+}
+.slideshow-prev {
+  left: 1.5rem;
+}
+.slideshow-next {
+  right: 1.5rem;
+}
+/* Auto switch (left), dots (centre), balanced by an empty right side — the
+   same equal-sides trick as the carousel controls. */
+.slideshow-foot {
+  min-height: 3.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1.5rem 0.5rem;
+}
+.slideshow-foot-side {
+  flex: 1 1 0;
+  display: flex;
+}
+.slideshow-auto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  border: 0;
+  background: none;
+  color: rgba(255, 255, 255, 0.72);
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+.slideshow-auto:hover,
+.slideshow-auto[aria-checked="true"] {
+  color: #fff;
+}
+.slideshow-switch {
+  position: relative;
+  width: 2.1rem;
+  height: 1.25rem;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.18);
+  transition: background-color 180ms ease;
+}
+.slideshow-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.25rem - 4px);
+  height: calc(1.25rem - 4px);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* On: inverts to a white track with a black knob, like the close button's hover. */
+.slideshow-auto[aria-checked="true"] .slideshow-switch {
+  background: #fff;
+}
+.slideshow-auto[aria-checked="true"] .slideshow-switch::after {
+  background: #000;
+  box-shadow: none;
+  transform: translateX(0.85rem);
+}
+.slideshow-auto:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+  border-radius: var(--r-sm);
+}
+.slideshow-dots {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.slideshow-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  background: rgba(255, 255, 255, 0.32);
+  transition: width 360ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 360ms ease;
+}
+.slideshow-dot[data-active="true"] {
+  width: 28px;
+  background: #fff;
+}
+/* While Auto runs, the active dot becomes a track the countdown sweeps over. */
+.slideshow-dot {
+  position: relative;
+  overflow: hidden;
+}
+.slideshow-dot[data-active="true"]:has(.slideshow-dot-fill) {
+  background: rgba(255, 255, 255, 0.32);
+}
+.slideshow-dot-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: #fff;
+  border-radius: inherit;
+  animation-name: carousel-fill;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes slideshow-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes slideshow-from-right {
+  from {
+    opacity: 0;
+    transform: translateX(3rem);
+  }
+}
+@keyframes slideshow-from-left {
+  from {
+    opacity: 0;
+    transform: translateX(-3rem);
+  }
+}
+@keyframes slideshow-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes slideshow-out-left {
+  to {
+    opacity: 0;
+    transform: translateX(-3rem);
+  }
+}
+@keyframes slideshow-out-right {
+  to {
+    opacity: 0;
+    transform: translateX(3rem);
+  }
+}
+@media (max-width: 639px) {
+  /* Arrows float over the photo's edges instead of taking side gutters. */
+  .slideshow-stage {
+    padding: 0 0.75rem;
+  }
+  .slideshow-prev {
+    left: 1.25rem;
+  }
+  .slideshow-next {
+    right: 1.25rem;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slideshow,
+  .slideshow-meta,
+  .slideshow-layer[data-motion],
+  .slideshow-dot {
+    animation: none;
+    transition: none;
+  }
+  /* No animation means no animationend to clear the outgoing photo. */
+  .slideshow-layer[data-motion^="out"] {
+    display: none;
   }
 }
 
