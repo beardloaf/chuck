@@ -2591,22 +2591,17 @@ p, span, li, label, input, textarea, button.body, .body {
   align-items: center;
   gap: 0.75rem;
 }
-/* Too narrow for both on one row: centre the stepper and drop the end action
-   onto its own row beneath, still anchored right. */
-@container story-carousel (max-width: 480px) {
+/* Too narrow for all three on one row: the stepper takes its own centred row,
+   with Auto (left) and the end action (right) on the row beneath. */
+@container story-carousel (max-width: 560px) {
   .carousel-controls {
     flex-wrap: wrap;
-    justify-content: center;
     row-gap: 1rem;
   }
-  .carousel-controls-side:first-child {
-    display: none;
-  }
-  .carousel-controls-end {
-    flex-basis: 100%;
-  }
-  .carousel-controls-end:empty {
-    display: none;
+  .carousel-stepper {
+    order: -1;
+    flex: 1 0 100%;
+    justify-content: center;
   }
 }
 .carousel-arrow {
@@ -2885,7 +2880,9 @@ body.slideshow-open {
   flex: 1 1 0;
   display: flex;
 }
-.slideshow-auto {
+/* Auto on/off switch — the slideshow's foot and the story carousel's controls,
+   both of which sit on black whatever the page theme. */
+.auto-switch {
   display: inline-flex;
   align-items: center;
   gap: 0.6rem;
@@ -2901,11 +2898,11 @@ body.slideshow-open {
   cursor: pointer;
   transition: color 140ms ease;
 }
-.slideshow-auto:hover,
-.slideshow-auto[aria-checked="true"] {
+.auto-switch:hover,
+.auto-switch[aria-checked="true"] {
   color: #fff;
 }
-.slideshow-switch {
+.auto-switch-track {
   position: relative;
   width: 2.1rem;
   height: 1.25rem;
@@ -2913,7 +2910,7 @@ body.slideshow-open {
   background: rgba(255, 255, 255, 0.18);
   transition: background-color 180ms ease;
 }
-.slideshow-switch::after {
+.auto-switch-track::after {
   content: "";
   position: absolute;
   top: 2px;
@@ -2926,15 +2923,15 @@ body.slideshow-open {
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 /* On: inverts to a white track with a black knob, like the close button's hover. */
-.slideshow-auto[aria-checked="true"] .slideshow-switch {
+.auto-switch[aria-checked="true"] .auto-switch-track {
   background: #fff;
 }
-.slideshow-auto[aria-checked="true"] .slideshow-switch::after {
+.auto-switch[aria-checked="true"] .auto-switch-track::after {
   background: #000;
   box-shadow: none;
   transform: translateX(0.85rem);
 }
-.slideshow-auto:focus-visible {
+.auto-switch:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 4px;
   border-radius: var(--r-sm);

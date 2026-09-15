@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { AudioPlayer } from "@/app/feed/AudioPlayer";
-import { StoryPhoto } from "./Slideshow";
+import { AutoSwitch, StoryPhoto, useAuto } from "./Slideshow";
 
 export interface CarouselMedia {
   id: string;
@@ -23,7 +23,8 @@ const SLIDE_MS = 5000;
  * white fill sweeps across it as the timer counts down, then advances.
  *
  * Auto-advance only runs on image slides — video/audio slides hold so a
- * playing clip isn't yanked away. Hovering pauses the timer.
+ * playing clip isn't yanked away. Hovering pauses the timer, and the Auto
+ * switch at the left of the stepper row (shared with the slideshow) stops it.
  *
  * `controlsEnd` (e.g. a download button) sits at the right end of the stepper
  * row; the stepper stays centred while there's room and slides left when not.
@@ -37,10 +38,11 @@ export function MediaCarousel({
 }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [auto, setAuto] = useAuto();
   const count = media.length;
 
   const active = media[index];
-  const autoAdvance = active?.type === "image";
+  const autoAdvance = auto && active?.type === "image";
 
   const next = useCallback(() => {
     setIndex((i) => (i + 1) % count);
@@ -73,7 +75,9 @@ export function MediaCarousel({
       </div>
 
       <div className="carousel-controls">
-        <div className="carousel-controls-side" />
+        <div className="carousel-controls-side">
+          <AutoSwitch on={auto} onChange={setAuto} />
+        </div>
         <div className="carousel-stepper">
           <button
             type="button"
