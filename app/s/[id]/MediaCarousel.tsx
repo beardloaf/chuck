@@ -23,8 +23,8 @@ const SLIDE_MS = 5000;
  * white fill sweeps across it as the timer counts down, then advances.
  *
  * Auto-advance only runs on image slides — video/audio slides hold so a
- * playing clip isn't yanked away. Hovering pauses the timer, and the Auto
- * switch at the left of the stepper row (shared with the slideshow) stops it.
+ * playing clip isn't yanked away. The Auto switch at the left of the stepper
+ * row (shared with the slideshow) stops it.
  *
  * `controlsEnd` (e.g. a download button) sits at the right end of the stepper
  * row; the stepper stays centred while there's room and slides left when not.
@@ -37,9 +37,34 @@ export function MediaCarousel({
   controlsEnd?: ReactNode;
 }) {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
   const [auto, setAuto] = useAuto();
   const count = media.length;
+  const controlsRef = useRef<HTMLDivElement | null>(null);
+  const [stacked, setStacked] = useState(false);
+
+  // Auto, the stepper and the end action share one row while their natural
+  // widths fit; past that the stepper takes a row of its own. Measured rather
+  // than a fixed breakpoint because the stepper grows with the number of dots.
+  // The widths don't change with the layout, so the check can't flip-flop.
+  useEffect(() => {
+    const row = controlsRef.current;
+    if (!row) return;
+    const ro = new ResizeObserver(() => {
+      const [start, stepper, end] = Array.from(row.children);
+      const width = (el: Element | null | undefined) =>
+        el instanceof HTMLElement ? el.offsetWidth : 0;
+      const gap = parseFloat(getComputedStyle(row).columnGap) || 0;
+      // The sides flex, so measure what's inside them.
+      const need =
+        width(start?.firstElementChild) +
+        width(stepper) +
+        width(end?.firstElementChild) +
+        gap * 2;
+      setStacked(need > row.clientWidth);
+    });
+    ro.observe(row);
+    return () => ro.disconnect();
+  }, []);
 
   const active = media[index];
   const autoAdvance = auto && active?.type === "image";
@@ -54,9 +79,6 @@ export function MediaCarousel({
   return (
     <div
       className="story-carousel"
-      data-paused={paused ? "true" : undefined}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
       aria-roledescription="carousel"
       aria-label="Memory media"
     >
@@ -74,7 +96,11 @@ export function MediaCarousel({
         ))}
       </div>
 
-      <div className="carousel-controls">
+      <div
+        className="carousel-controls"
+        ref={controlsRef}
+        data-stacked={stacked ? "true" : undefined}
+      >
         <div className="carousel-controls-side">
           <AutoSwitch on={auto} onChange={setAuto} />
         </div>
