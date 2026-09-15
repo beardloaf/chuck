@@ -38,10 +38,23 @@ interface Slide {
 /** How long each photo holds before auto-advancing, when Auto is on (ms). */
 const AUTO_MS = 5000;
 
-/** Opens the slideshow on a photo; null outside a provider (no expand button). */
-const OpenSlideshowContext = createContext<((photoId: string) => void) | null>(
-  null,
-);
+/**
+ * `open` starts the slideshow on a photo; `auto` is the one Auto setting shared
+ * by the slideshow and the story page's carousel. Null outside a provider (no
+ * expand button; the carousel keeps its own setting).
+ */
+const SlideshowContext = createContext<{
+  open: (photoId: string) => void;
+  auto: boolean;
+  setAuto: (auto: boolean) => void;
+} | null>(null);
+
+/** The shared Auto setting, or a local one outside a slideshow provider. */
+export function useAuto(): [boolean, (auto: boolean) => void] {
+  const ctx = useContext(SlideshowContext);
+  const [local, setLocal] = useState(true);
+  return ctx ? [ctx.auto, ctx.setAuto] : [local, setLocal];
+}
 
 /**
  * Holds the full-screen slideshow for a story page. `posts` are every memory
@@ -66,7 +79,7 @@ export function SlideshowProvider({
   );
   const [index, setIndex] = useState<number | null>(null);
   // On by default. Kept here rather than in the overlay so switching it off
-  // holds between openings.
+  // holds between openings, and so the carousel's switch is the same one.
   const [auto, setAuto] = useState(true);
 
   const open = useCallback(
@@ -83,8 +96,10 @@ export function SlideshowProvider({
     if (postId && postId !== activeId) router.push(`/s/${postId}`);
   }, [index, slides, activeId, router]);
 
+  const ctx = useMemo(() => ({ open, auto, setAuto }), [open, auto]);
+
   return (
-    <OpenSlideshowContext.Provider value={open}>
+    <SlideshowContext.Provider value={ctx}>
       {children}
       {index !== null && slides[index] && (
         <Slideshow
@@ -96,7 +111,7 @@ export function SlideshowProvider({
           onAuto={setAuto}
         />
       )}
-    </OpenSlideshowContext.Provider>
+    </SlideshowContext.Provider>
   );
 }
 
@@ -273,18 +288,7 @@ function Slideshow({
 
       <div className="slideshow-foot">
         <div className="slideshow-foot-side">
-          {count > 1 && (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={auto}
-              className="slideshow-auto"
-              onClick={() => onAuto(!auto)}
-            >
-              <span className="slideshow-switch" aria-hidden />
-              <span>Auto</span>
-            </button>
-          )}
+          {count > 1 && <AutoSwitch on={auto} onChange={onAuto} />}
         </div>
         <div aria-live={auto ? "off" : "polite"}>
           {post.photos.length > 1 && (
@@ -332,7 +336,7 @@ export function StoryPhoto({
   photo: SlideshowPhoto;
   expandable?: boolean;
 }) {
-  const openSlideshow = useContext(OpenSlideshowContext);
+  const openSlideshow = useContext(SlideshowContext)?.open;
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [natural, setNatural] = useState<number | null>(null);
   const ratio =
@@ -368,6 +372,28 @@ export function StoryPhoto({
         </button>
       )}
     </div>
+  );
+}
+
+/** The "Auto" on/off switch, for controls sitting on a black panel. */
+export function AutoSwitch({
+  on,
+  onChange,
+}: {
+  on: boolean;
+  onChange: (on: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      className="auto-switch"
+      onClick={() => onChange(!on)}
+    >
+      <span className="auto-switch-track" aria-hidden />
+      <span>Auto</span>
+    </button>
   );
 }
 

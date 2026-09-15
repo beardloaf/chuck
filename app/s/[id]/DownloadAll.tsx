@@ -9,7 +9,9 @@ export interface DownloadItem {
 }
 
 /**
- * Header button that downloads every media file in a memory. The files are
+ * Round icon button that downloads every media file in a memory — icon-only so
+ * it fits beside the carousel's Auto switch and stepper on narrow screens; the
+ * label lives in aria-label and the hover tooltip. The files are
  * same-origin static assets, so we fetch each as a blob and save it in turn.
  */
 export function DownloadAll({ items }: { items: DownloadItem[] }) {
@@ -43,7 +45,11 @@ export function DownloadAll({ items }: { items: DownloadItem[] }) {
     }
   }
 
-  const label = items.length > 1 ? "Download all" : "Download";
+  const label = busy
+    ? "Downloading…"
+    : items.length > 1
+      ? `Download all (${items.length} files)`
+      : "Download";
 
   return (
     <button
@@ -51,19 +57,17 @@ export function DownloadAll({ items }: { items: DownloadItem[] }) {
       className="story-download"
       onClick={downloadAll}
       disabled={busy}
-      aria-label={`Download all media in this memory${
-        items.length > 1 ? ` (${items.length} files)` : ""
-      }`}
+      aria-label={label}
+      title={label}
     >
       {busy ? <SpinnerIcon /> : <DownloadIcon />}
-      <span>{busy ? "Downloading…" : label}</span>
     </button>
   );
 }
 
 function DownloadIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+    <svg width="16" height="16" viewBox="0 0 14 14" fill="none" aria-hidden>
       <path
         d="M7 1.5v7m0 0L4 5.5m3 3 3-3"
         stroke="currentColor"
@@ -85,8 +89,8 @@ function DownloadIcon() {
 function SpinnerIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="16"
+      height="16"
       viewBox="0 0 14 14"
       fill="none"
       aria-hidden
